@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Администраторы — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Администраторы</h1>
+      <p class="page-subtitle">Учётные записи роли «администратор»</p>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>ФИО</th><th>Email (логин)</th><th class="ta-right">Статус</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for a in admins %}
+        <tr class="{{ '' if a.is_active else 'row-muted' }}">
+          <td class="td-strong">
+            {{ a.full_name }}
+            {% if a.id == current_user.id %}<span class="pill pill-accent" style="margin-left:6px">вы</span>{% endif %}
+          </td>
+          <td class="mono">{{ a.email or a.login }}</td>
+          <td class="ta-right">
+            {% if a.is_active %}<span class="pill pill-ok">Активен</span>
+            {% else %}<span class="pill pill-muted">Отключён</span>{% endif %}
+          </td>
+          <td class="ta-right nowrap">
+            <details class="mini-menu">
+              <summary class="btn-link">сбросить пароль</summary>
+              <form method="post" action="{{ url_for('admin.reset_admin_password', user_id=a.id) }}" class="mini-edit">
+                <input type="text" name="password" class="mono" placeholder="новый пароль" autocomplete="new-password" required>
+                <button type="submit" class="btn btn-primary">Задать</button>
+              </form>
+            </details>
+            {% if a.id != current_user.id %}
+            <form method="post" action="{{ url_for('admin.toggle_admin', user_id=a.id) }}" style="display:inline"
+                  onsubmit="return confirm('{{ 'Деактивировать администратора?' if a.is_active else 'Активировать администратора?' }}')">
+              <button type="submit" class="btn-link {{ 'danger-link' if a.is_active else '' }}">
+                {{ 'отключить' if a.is_active else 'включить' }}
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card form-card">
+    <h2 class="card-title">Новый администратор</h2>
+    <form method="post" action="{{ url_for('admin.admins') }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="full_name">ФИО *</label>
+          <input type="text" id="full_name" name="full_name" required>
+        </div>
+        <div class="field">
+          <label for="email">Email (логин) *</label>
+          <input type="email" id="email" name="email" class="mono" autocomplete="off" required>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="password">Пароль *</label>
+          <input type="text" id="password" name="password" class="mono" autocomplete="new-password" required>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Создать администратора</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

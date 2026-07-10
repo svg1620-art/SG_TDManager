@@ -38,6 +38,8 @@
       {% if current_user.is_admin %}
       <a class="nav-link{% if request.endpoint == 'admin.methodologists' %} active{% endif %}"
          href="{{ url_for('admin.methodologists') }}">Методологи</a>
+      <a class="nav-link{% if request.endpoint and request.endpoint.startswith('admin.admins') %} active{% endif %}"
+         href="{{ url_for('admin.admins') }}">Админы</a>
       <a class="nav-link{% if request.endpoint and request.endpoint.startswith('admin.fraud') %} active{% endif %}"
          href="{{ url_for('admin.fraud') }}">Фрод</a>
       {% endif %}

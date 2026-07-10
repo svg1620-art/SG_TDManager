@@ -170,6 +170,89 @@ def reset_password(user_id):
 
 
 # --------------------------------------------------------------------------- #
+# Управление администраторами
+# --------------------------------------------------------------------------- #
+@admin_bp.route("/admins", methods=["GET", "POST"])
+@role_required(ROLE_ADMIN)
+def admins():
+    if request.method == "POST":
+        full_name = (request.form.get("full_name") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        password = request.form.get("password") or ""
+
+        if not full_name or not email or not password:
+            flash("ФИО, email и пароль обязательны.", "error")
+        elif User.query.filter_by(login=email).first() is not None:
+            flash("Пользователь с таким email уже существует.", "error")
+        else:
+            # Логин = email.
+            a = User(
+                role=ROLE_ADMIN,
+                full_name=full_name,
+                login=email,
+                email=email,
+                is_active=True,
+            )
+            a.set_password(password)
+            db.session.add(a)
+            db.session.commit()
+            flash(f"Администратор {full_name} создан.", "info")
+            return redirect(url_for("admin.admins"))
+
+    admin_users = (
+        User.query.filter_by(role=ROLE_ADMIN)
+        .order_by(User.is_active.desc(), User.full_name)
+        .all()
+    )
+    active_admins = sum(1 for a in admin_users if a.is_active)
+    return render_template(
+        "admin/admins.html",
+        admins=admin_users,
+        active_admins=active_admins,
+    )
+
+
+@admin_bp.route("/admins/<int:user_id>/toggle-active", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def toggle_admin(user_id):
+    a = db.session.get(User, user_id)
+    if a is None or a.role != ROLE_ADMIN:
+        abort(404)
+
+    if a.is_active:
+        if a.id == current_user.id:
+            flash("Нельзя деактивировать самого себя.", "error")
+            return redirect(url_for("admin.admins"))
+        active_admins = User.query.filter_by(role=ROLE_ADMIN, is_active=True).count()
+        if active_admins <= 1:
+            flash("В системе должен остаться хотя бы один активный админ.", "error")
+            return redirect(url_for("admin.admins"))
+        a.is_active = False
+        flash("Администратор деактивирован.", "info")
+    else:
+        a.is_active = True
+        flash("Администратор активирован.", "info")
+    db.session.commit()
+    return redirect(url_for("admin.admins"))
+
+
+@admin_bp.route("/admins/<int:user_id>/reset-password", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def reset_admin_password(user_id):
+    a = db.session.get(User, user_id)
+    if a is None or a.role != ROLE_ADMIN:
+        abort(404)
+    new_password = request.form.get("password") or ""
+    if len(new_password) < 4:
+        flash("Пароль слишком короткий (минимум 4 символа).", "error")
+        return redirect(url_for("admin.admins"))
+    a.set_password(new_password)
+    db.session.commit()
+    flash(f"Пароль администратора {a.full_name} обновлён.", "info")
+    return redirect(url_for("admin.admins"))
+
+
+# --------------------------------------------------------------------------- #
 # Фрод-монитор
 # --------------------------------------------------------------------------- #
 @admin_bp.route("/fraud")
