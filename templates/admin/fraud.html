@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Фрод-монитор — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Фрод-монитор</h1>
+      <p class="page-subtitle">
+        Часы по методологам за день · порог <b class="mono">{{ threshold }} ч/день</b> ·
+        по исполнителю записи (переназначение историю не искажает)
+      </p>
+    </div>
+  </div>
+
+  <!-- Крупно «сегодня» -->
+  <div class="card">
+    <h2 class="card-title">Сегодня · <span class="mono">{{ today.strftime('%d.%m.%Y') }}</span></h2>
+    {% if today_totals %}
+    <div class="today-grid">
+      {% for t in today_totals %}
+      <div class="today-cell {{ 'over' if t.hours > threshold else '' }}">
+        <div class="today-name">{{ t.name }}</div>
+        <div class="today-hours num">{{ '%.2f'|format(t.hours) }} ч</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-inline">Сегодня списаний времени ещё не было.</p>
+    {% endif %}
+  </div>
+
+  <!-- Матрица методолог × день -->
+  <div class="card table-card">
+    <h2 class="card-title" style="padding:0 18px">Матрица за {{ days }} дней</h2>
+    <div class="fraud-scroll">
+      <table class="data-table fraud-table">
+        <thead>
+          <tr>
+            <th class="sticky-col">Методолог</th>
+            {% for d in matrix.dates %}
+            <th class="ta-right {{ 'col-weekend' if d.weekday() >= 5 else '' }}">
+              <span class="mono">{{ d.strftime('%d.%m') }}</span>
+            </th>
+            {% endfor %}
+            <th class="ta-right">Итого</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in matrix.rows %}
+          <tr>
+            <td class="sticky-col td-strong">
+              {{ r.name }}{% if not r.is_active %} <span class="dim">(архив)</span>{% endif %}
+            </td>
+            {% for d in matrix.dates %}
+            {% set h = r.per_day[d] %}
+            <td class="ta-right num fraud-cell {{ 'over' if h > threshold else ('zero' if h == 0 else '') }}">
+              {% if h > 0 %}
+              <a href="{{ url_for('admin.fraud_entries', methodologist_id=r.user_id, date=d.isoformat()) }}"
+                 title="Показать записи">{{ '%.1f'|format(h) }}</a>
+              {% else %}<span class="dim">·</span>{% endif %}
+            </td>
+            {% endfor %}
+            <td class="ta-right num td-strong">{{ '%.1f'|format(r.total) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ matrix.dates|length + 2 }}" class="empty-inline" style="padding:24px">
+            За выбранный период списаний времени не было.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="hint dim" style="padding:0 18px">
+      Красным — дни, где сумма часов методолога превышает порог {{ threshold }} ч.
+      Клик по ячейке — записи этого дня.
+    </p>
+  </div>
+{% endblock %}

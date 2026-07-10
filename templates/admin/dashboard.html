@@ -1,22 +1,85 @@
 {% extends "base.html" %}
-{% block title %}Дашборд администратора — SG · T&D manager{% endblock %}
+{% block title %}Сводка по методологам — SG · T&D manager{% endblock %}
 
 {% block content %}
   <div class="page-head">
     <div>
-      <h1 class="page-title">Дашборд нагрузки</h1>
-      <p class="page-subtitle">Все клиенты · <span class="mono">{{ '%02d'|format(month) }}.{{ year }}</span></p>
+      <h1 class="page-title">Сводка по методологам</h1>
+      <p class="page-subtitle">Все методологи и клиенты · <span class="mono">{{ '%02d'|format(month) }}.{{ year }}</span></p>
     </div>
     <div class="page-head-actions">
-      <a class="btn btn-ghost" href="{{ url_for('tasks.list_tasks') }}">Список задач</a>
-      <a class="btn btn-primary" href="{{ url_for('tasks.board') }}">Доска задач</a>
+      <div class="month-nav">
+        <a class="btn btn-ghost" href="{{ url_for('admin.dashboard', year=prev_month.year, month=prev_month.month) }}">←</a>
+        <span class="month-label mono">{{ '%02d'|format(month) }}.{{ year }}</span>
+        <a class="btn btn-ghost" href="{{ url_for('admin.dashboard', year=next_month.year, month=next_month.month) }}">→</a>
+      </div>
     </div>
   </div>
 
-  {% include "partials/workload.html" %}
+  <!-- Обзорная таблица методологов -->
+  <div class="card table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Методолог</th>
+          <th class="ta-right">Клиентов</th>
+          <th class="ta-right">Лимит, ч</th>
+          <th class="ta-right">Расход, ч</th>
+          <th class="ta-right">Остаток, ч</th>
+          <th class="ta-right">В работе</th>
+          <th class="ta-right">В минусе</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in summary %}
+        <tr class="{{ '' if r.is_active else 'row-muted' }}">
+          <td class="td-strong">
+            {{ r.name }}
+            {% if not r.is_active %}<span class="pill pill-muted">архив</span>{% endif %}
+          </td>
+          <td class="ta-right num">{{ r.client_count }}</td>
+          <td class="ta-right num">{{ '%.1f'|format(r.total_effective) }}</td>
+          <td class="ta-right num">{{ '%.1f'|format(r.total_consumed) }}</td>
+          <td class="ta-right num {{ 'neg' if r.remaining < 0 else '' }}">
+            {% if r.remaining < 0 %}Минус {{ '%.1f'|format(-r.remaining) }}{% else %}{{ '%.1f'|format(r.remaining) }}{% endif %}
+          </td>
+          <td class="ta-right num">{{ r.in_progress }}</td>
+          <td class="ta-right num {{ 'neg' if r.minus_count else 'dim' }}">{{ r.minus_count }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-inline" style="padding:24px">Методологов пока нет — создайте первого в разделе «Методологи».</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Графики -->
+  <div class="dash-charts">
+    <div class="card">
+      <h2 class="card-title">Расход по методологам <span class="dim">({{ '%02d'|format(month) }}.{{ year }})</span></h2>
+      {% if has_method_data %}
+      <div class="bar-box"><canvas id="methodChart"></canvas></div>
+      {% else %}
+      <p class="empty-inline">За выбранный период списаний времени не было.</p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2 class="card-title">Топ клиентов по расходу <span class="dim">({{ '%02d'|format(month) }}.{{ year }})</span></h2>
+      {% if has_client_data %}
+      <div class="bar-box"><canvas id="clientBarChart"></canvas></div>
+      {% else %}
+      <p class="empty-inline">За выбранный период списаний времени не было.</p>
+      {% endif %}
+    </div>
+  </div>
 {% endblock %}
 
 {% block head_extra %}
-<script>window.__work = { byClient: {{ by_client_chart | tojson }} };</script>
+<script>
+  window.__admin = {
+    method: {{ method_chart | tojson }},
+    client: {{ client_chart | tojson }}
+  };
+</script>
 <script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
 {% endblock %}

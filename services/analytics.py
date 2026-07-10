@@ -110,6 +110,67 @@ def client_balances(clients, year, month) -> list:
     return balances
 
 
+def methodologist_summary(year, month) -> list:
+    """Сводка по каждому методологу за месяц: клиенты, лимит, расход, задачи в работе."""
+    from constants import ROLE_METHODOLOGIST, STATUS_IN_PROGRESS
+    from models import ClientOrg, User
+
+    methods = (
+        User.query.filter_by(role=ROLE_METHODOLOGIST)
+        .order_by(User.is_active.desc(), User.full_name)
+        .all()
+    )
+    rows = []
+    for m in methods:
+        clients = ClientOrg.query.filter_by(
+            methodologist_id=m.id, is_active=True
+        ).all()
+        total_eff = sum((effective_limit(c.id, year, month) for c in clients), ZERO)
+        total_cons = sum((consumed_hours(c.id, year, month) for c in clients), ZERO)
+        minus = sum(
+            1
+            for c in clients
+            if effective_limit(c.id, year, month) - consumed_hours(c.id, year, month) < 0
+        )
+        in_progress = 0
+        if clients:
+            in_progress = (
+                Task.query.filter(
+                    Task.client_id.in_([c.id for c in clients]),
+                    Task.status == STATUS_IN_PROGRESS,
+                ).count()
+            )
+        rows.append(
+            {
+                "id": m.id,
+                "name": m.full_name,
+                "login": m.login,
+                "is_active": m.is_active,
+                "client_count": len(clients),
+                "total_effective": total_eff,
+                "total_consumed": total_cons,
+                "remaining": total_eff - total_cons,
+                "in_progress": in_progress,
+                "minus_count": minus,
+            }
+        )
+    return rows
+
+
+def top_clients_by_spend(year, month, limit=10) -> list:
+    """Топ-N клиентов по расходу за месяц (для системного графика)."""
+    from models import ClientOrg
+
+    clients = ClientOrg.query.filter_by(is_active=True).all()
+    data = []
+    for c in clients:
+        cons = consumed_hours(c.id, year, month)
+        if cons > 0:
+            data.append({"name": c.name, "hours": cons})
+    data.sort(key=lambda r: r["hours"], reverse=True)
+    return data[:limit]
+
+
 def workload_summary(clients, year, month) -> dict:
     """Сводка нагрузки для дашборда методолога/админа за месяц."""
     balances = client_balances(clients, year, month)

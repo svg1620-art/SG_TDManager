@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Методологи — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Методологи</h1>
+      <p class="page-subtitle">Учётные записи роли «методолог»</p>
+    </div>
+  </div>
+
+  {% if methods %}
+  <div class="card table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>ФИО</th><th>Логин</th><th>Email</th><th class="ta-right">Клиентов</th><th class="ta-right">Статус</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for m in methods %}
+        <tr class="{{ '' if m.is_active else 'row-muted' }}">
+          <td class="td-strong">{{ m.full_name }}</td>
+          <td class="mono">{{ m.login }}</td>
+          <td class="dim">{{ m.email or '—' }}</td>
+          <td class="ta-right num">{{ client_counts.get(m.id, 0) }}</td>
+          <td class="ta-right">
+            {% if m.is_active %}<span class="pill pill-ok">Активен</span>
+            {% else %}<span class="pill pill-muted">Отключён</span>{% endif %}
+          </td>
+          <td class="ta-right nowrap">
+            <details class="mini-menu">
+              <summary class="btn-link">сбросить пароль</summary>
+              <form method="post" action="{{ url_for('admin.reset_password', user_id=m.id) }}" class="mini-edit">
+                <input type="text" name="password" class="mono" placeholder="новый пароль" autocomplete="new-password" required>
+                <button type="submit" class="btn btn-primary">Задать</button>
+              </form>
+            </details>
+            <form method="post" action="{{ url_for('admin.toggle_methodologist', user_id=m.id) }}" style="display:inline"
+                  onsubmit="return confirm('{{ 'Деактивировать методолога?' if m.is_active else 'Активировать методолога?' }}')">
+              <button type="submit" class="btn-link {{ 'danger-link' if m.is_active else '' }}">
+                {{ 'отключить' if m.is_active else 'включить' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card empty-state">
+    <p class="empty-title">Методологов пока нет</p>
+    <p class="dim">Создайте первого методолога — он появится в выборе владельца клиента.</p>
+  </div>
+  {% endif %}
+
+  <div class="card form-card">
+    <h2 class="card-title">Новый методолог</h2>
+    <form method="post" action="{{ url_for('admin.methodologists') }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="full_name">ФИО *</label>
+          <input type="text" id="full_name" name="full_name" required>
+        </div>
+        <div class="field">
+          <label for="login">Логин *</label>
+          <input type="text" id="login" name="login" class="mono" autocomplete="off" required>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email">
+        </div>
+        <div class="field">
+          <label for="password">Пароль *</label>
+          <input type="text" id="password" name="password" class="mono" autocomplete="new-password" required>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Создать методолога</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

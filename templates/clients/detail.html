@@ -65,6 +65,64 @@
     {% endif %}
   </div>
 
+  <!-- Переназначение методолога (только админ) -->
+  {% if current_user.is_admin %}
+  <div class="card">
+    <h2 class="card-title">Закрепление за методологом</h2>
+    <p class="dim" style="margin-top:-8px">
+      Текущий методолог: <b>{{ org.methodologist.full_name if org.methodologist else '— не назначен —' }}</b>.
+      При передаче все задачи клиента переезжают автоматически; история списанных часов сохраняет исходных исполнителей.
+    </p>
+
+    <details class="inline-form">
+      <summary class="btn btn-ghost">Передать другому методологу</summary>
+      <form method="post" action="{{ url_for('clients.reassign', client_id=org.id) }}" class="mt-16"
+            onsubmit="return confirm('Передать клиента выбранному методологу?')">
+        <div class="form-grid">
+          <div class="field">
+            <label>Новый методолог *</label>
+            <select name="methodologist_id" required>
+              <option value="">— выберите —</option>
+              {% for m in active_methodologists %}
+              {% if not org.methodologist_id or m.id != org.methodologist_id %}
+              <option value="{{ m.id }}">{{ m.full_name }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Причина *</label>
+            <input type="text" name="reason" placeholder="напр. перераспределение нагрузки" required>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Передать клиента</button>
+        </div>
+      </form>
+    </details>
+
+    {% if reassignments %}
+    <h3 class="subsection">История передач</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>Дата</th><th>От</th><th>Кому</th><th>Причина</th><th>Кто</th></tr>
+      </thead>
+      <tbody>
+        {% for r in reassignments %}
+        <tr>
+          <td class="mono dim">{{ r.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+          <td>{{ r.from_methodologist.full_name if r.from_methodologist else '—' }}</td>
+          <td class="td-strong">{{ r.to_methodologist.full_name if r.to_methodologist else '—' }}</td>
+          <td>{{ r.reason or '—' }}</td>
+          <td class="dim">{{ r.changer.full_name if r.changer else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Сотрудники -->
   <div class="card">
     <h2 class="card-title">Сотрудники</h2>

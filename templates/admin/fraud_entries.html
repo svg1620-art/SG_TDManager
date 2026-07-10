@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Записи дня — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs">
+    <a href="{{ url_for('admin.fraud') }}">Фрод-монитор</a>
+    <span class="dim">/</span>
+    <span>{{ methodologist.full_name }} · {{ day.strftime('%d.%m.%Y') }}</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">{{ methodologist.full_name }}</h1>
+      <p class="page-subtitle">
+        Записи за <span class="mono">{{ day.strftime('%d.%m.%Y') }}</span> ·
+        итого <b class="num {{ 'neg' if total > threshold else 'accent' }}">{{ '%.2f'|format(total) }} ч</b>
+        {% if total > threshold %}<span class="pill pill-muted" style="color:#ff8496">превышение порога {{ threshold }} ч</span>{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    {% if rows %}
+    <table class="data-table">
+      <thead>
+        <tr><th>Клиент</th><th>Задача</th><th class="ta-right">Часы</th><th>Заметка</th><th>Создано</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.client_name }}</td>
+          <td>
+            {% if row.task %}
+            <a href="{{ url_for('tasks.task_detail', task_id=row.task.id) }}">{{ row.task.title }}</a>
+            {% else %}<span class="dim">—</span>{% endif %}
+          </td>
+          <td class="ta-right num">{{ '%.2f'|format(row.entry.hours) }}</td>
+          <td>{{ row.entry.note or '—' }}</td>
+          <td class="mono dim">{{ row.entry.created_at.strftime('%d.%m %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td class="td-strong">Итого</td><td></td>
+          <td class="ta-right num td-strong">{{ '%.2f'|format(total) }}</td><td colspan="2"></td></tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <p class="empty-inline" style="padding:18px">За этот день записей нет.</p>
+    {% endif %}
+  </div>
+{% endblock %}

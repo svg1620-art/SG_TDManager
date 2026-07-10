@@ -115,6 +115,9 @@ class ClientOrg(db.Model):
     reports = db.relationship(
         "MonthlyReport", back_populates="client", cascade="all, delete-orphan"
     )
+    reassignments = db.relationship(
+        "ClientReassignment", back_populates="client", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<ClientOrg {self.name}>"
@@ -289,3 +292,27 @@ class MonthlyReport(db.Model):
 
     def __repr__(self) -> str:
         return f"<MonthlyReport client={self.client_id} {self.year}-{self.month:02d}>"
+
+
+class ClientReassignment(db.Model):
+    """Аудит передачи клиента между методологами (Стадия 6)."""
+
+    __tablename__ = "client_reassignments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(
+        db.Integer, db.ForeignKey("client_orgs.id"), nullable=False, index=True
+    )
+    from_methodologist_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    to_methodologist_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    changed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    reason = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    client = db.relationship("ClientOrg", back_populates="reassignments")
+    from_methodologist = db.relationship("User", foreign_keys=[from_methodologist_id])
+    to_methodologist = db.relationship("User", foreign_keys=[to_methodologist_id])
+    changer = db.relationship("User", foreign_keys=[changed_by])
+
+    def __repr__(self) -> str:
+        return f"<ClientReassignment client={self.client_id} -> {self.to_methodologist_id}>"

@@ -1325,3 +1325,76 @@ a:hover {
   .dash-summary { grid-template-columns: 1fr 1fr; }
   .kpi-col { flex-direction: column; }
 }
+
+/* ===================== Стадия 6: админка и фрод-монитор ===================== */
+
+.bar-box {
+  position: relative;
+  height: 280px;
+}
+
+/* Блок «сегодня» */
+.today-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.today-cell {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.today-cell.over {
+  border-color: rgba(255, 84, 112, 0.5);
+  background: rgba(255, 84, 112, 0.08);
+}
+.today-name {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.today-hours {
+  font-size: 22px;
+  font-weight: 700;
+}
+.today-cell.over .today-hours {
+  color: #ff8496;
+}
+
+/* Матрица фрод-монитора */
+.fraud-scroll {
+  overflow-x: auto;
+}
+.fraud-table {
+  min-width: 720px;
+}
+.fraud-table th,
+.fraud-table td {
+  white-space: nowrap;
+}
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--bg-card);
+  z-index: 2;
+}
+.fraud-table thead .sticky-col {
+  z-index: 3;
+}
+.col-weekend {
+  color: var(--text-dim);
+}
+.fraud-cell.over {
+  background: rgba(255, 84, 112, 0.14);
+}
+.fraud-cell.over a {
+  color: #ff8496;
+  font-weight: 700;
+}
+.fraud-cell a {
+  color: var(--text);
+}
+.fraud-cell a:hover {
+  color: var(--cyan);
+}

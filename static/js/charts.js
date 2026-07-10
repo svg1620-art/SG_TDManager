@@ -93,6 +93,51 @@
     }
   }
 
+  function bar(canvasId, labels, data, colors) {
+    var el = document.getElementById(canvasId);
+    if (!el) return null;
+    return new Chart(el, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{ data: data, backgroundColor: colors, borderRadius: 6, maxBarThickness: 46 }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                return ctx.parsed.y.toFixed(2) + " ч";
+              },
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#9aa0ac" } },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(255,255,255,0.06)" },
+            ticks: { color: "#9aa0ac" },
+          },
+        },
+      },
+    });
+  }
+
+  // ---------- Админ-сводка (бары) ----------
+  var a = window.__admin;
+  if (a) {
+    if (a.method && a.method.data && a.method.data.length) {
+      bar("methodChart", a.method.labels, a.method.data, a.method.colors);
+    }
+    if (a.client && a.client.data && a.client.data.length) {
+      bar("clientBarChart", a.client.labels, a.client.data, a.client.colors);
+    }
+  }
+
   // ---------- Дашборд нагрузки (методолог/админ) ----------
   var w = window.__work;
   if (w && w.byClient && w.byClient.data && w.byClient.data.length) {

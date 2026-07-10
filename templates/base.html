@@ -35,6 +35,12 @@
          href="{{ url_for('tasks.list_tasks') }}">Задачи</a>
       <a class="nav-link{% if request.blueprint == 'clients' %} active{% endif %}"
          href="{{ url_for('clients.list_clients') }}">Клиенты</a>
+      {% if current_user.is_admin %}
+      <a class="nav-link{% if request.endpoint == 'admin.methodologists' %} active{% endif %}"
+         href="{{ url_for('admin.methodologists') }}">Методологи</a>
+      <a class="nav-link{% if request.endpoint and request.endpoint.startswith('admin.fraud') %} active{% endif %}"
+         href="{{ url_for('admin.fraud') }}">Фрод</a>
+      {% endif %}
       {% else %}
       <a class="nav-link{% if request.blueprint == 'client' %} active{% endif %}"
          href="{{ url_for('auth.index') }}">Дашборд</a>

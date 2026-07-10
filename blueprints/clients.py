@@ -18,9 +18,21 @@ from flask import (
 from flask_login import current_user
 
 from blueprints.auth import role_required
-from constants import ROLE_ADMIN, ROLE_CLIENT, ROLE_METHODOLOGIST
+from constants import (
+    NOTIF_CLIENT_ASSIGNED,
+    NOTIF_CLIENT_TRANSFERRED,
+    ROLE_ADMIN,
+    ROLE_CLIENT,
+    ROLE_METHODOLOGIST,
+)
 from extensions import db
-from models import BudgetAdjustment, ClientOrg, MonthlyBudget, User
+from models import (
+    BudgetAdjustment,
+    ClientOrg,
+    ClientReassignment,
+    MonthlyBudget,
+    User,
+)
 from services.budgets import (
     add_hours,
     base_limit,
@@ -28,6 +40,7 @@ from services.budgets import (
     effective_limit,
     sum_adjustments,
 )
+from services.notifications import notify
 
 clients_bp = Blueprint("clients", __name__, url_prefix="/clients")
 
@@ -282,6 +295,21 @@ def client_detail(client_id):
         for u in User.query.filter(User.id.in_(author_ids)).all()
     } if author_ids else {}
 
+    # Переназначение (только админ): список активных методологов + история передач.
+    active_methodologists = []
+    reassignments = []
+    if current_user.is_admin:
+        active_methodologists = (
+            User.query.filter_by(role=ROLE_METHODOLOGIST, is_active=True)
+            .order_by(User.full_name)
+            .all()
+        )
+        reassignments = (
+            ClientReassignment.query.filter_by(client_id=org.id)
+            .order_by(ClientReassignment.created_at.desc())
+            .all()
+        )
+
     return render_template(
         "clients/detail.html",
         org=org,
@@ -294,7 +322,63 @@ def client_detail(client_id):
         current_effective=effective_limit(org.id, today.year, today.month),
         current_base=base_limit(org.id, today.year, today.month),
         current_adjustments=sum_adjustments(org.id, today.year, today.month),
+        active_methodologists=active_methodologists,
+        reassignments=reassignments,
     )
+
+
+@clients_bp.route("/<int:client_id>/reassign", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def reassign(client_id):
+    org = db.session.get(ClientOrg, client_id)
+    if org is None:
+        abort(404)
+
+    try:
+        new_mid = int(request.form.get("methodologist_id"))
+    except (TypeError, ValueError):
+        flash("Выберите методолога.", "error")
+        return redirect(url_for("clients.client_detail", client_id=org.id))
+
+    reason = (request.form.get("reason") or "").strip()
+    if not reason:
+        flash("Укажите причину передачи.", "error")
+        return redirect(url_for("clients.client_detail", client_id=org.id))
+
+    new_m = db.session.get(User, new_mid)
+    if new_m is None or new_m.role != ROLE_METHODOLOGIST or not new_m.is_active:
+        flash("Некорректный методолог.", "error")
+        return redirect(url_for("clients.client_detail", client_id=org.id))
+
+    old_mid = org.methodologist_id
+    if old_mid == new_mid:
+        flash("Клиент уже закреплён за этим методологом.", "error")
+        return redirect(url_for("clients.client_detail", client_id=org.id))
+
+    # Меняем владельца — задачи переезжают автоматически (видимость по methodologist_id).
+    # time_entries НЕ трогаем: историческая атрибуция исполнителя сохраняется.
+    org.methodologist_id = new_mid
+    db.session.add(
+        ClientReassignment(
+            client_id=org.id,
+            from_methodologist_id=old_mid,
+            to_methodologist_id=new_mid,
+            changed_by=current_user.id,
+            reason=reason,
+        )
+    )
+    db.session.commit()
+
+    notify(new_mid, NOTIF_CLIENT_ASSIGNED, f"Вам передан клиент «{org.name}».")
+    if old_mid:
+        notify(
+            old_mid,
+            NOTIF_CLIENT_TRANSFERRED,
+            f"Клиент «{org.name}» передан другому методологу.",
+        )
+
+    flash(f"Клиент передан методологу {new_m.full_name}.", "info")
+    return redirect(url_for("clients.client_detail", client_id=org.id))
 
 
 # --------------------------------------------------------------------------- #
