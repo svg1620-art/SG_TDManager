@@ -1020,6 +1020,11 @@ a:hover {
   flex: 1;
   min-width: 120px;
 }
+.mini-edit input[name="full_name"],
+.mini-edit input[name="email"],
+.mini-edit input[name="password"] {
+  min-width: 170px;
+}
 
 @media (max-width: 640px) {
   .limit-row {

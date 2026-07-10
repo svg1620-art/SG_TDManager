@@ -417,6 +417,39 @@ def add_employee(client_id):
     return redirect(url_for("clients.client_detail", client_id=org.id))
 
 
+@clients_bp.route("/employees/<int:user_id>/edit", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def edit_employee(user_id):
+    employee = db.session.get(User, user_id)
+    if employee is None or employee.role != ROLE_CLIENT or employee.client_id is None:
+        abort(404)
+    # Проверка владения через организацию сотрудника.
+    _load_client_or_403(employee.client_id)
+
+    full_name = (request.form.get("full_name") or "").strip()
+    email = (request.form.get("email") or "").strip()
+    password = request.form.get("password") or ""
+
+    if not full_name or not email:
+        flash("ФИО и email обязательны.", "error")
+        return redirect(url_for("clients.client_detail", client_id=employee.client_id))
+
+    # Email = логин: проверяем уникальность, исключая самого сотрудника.
+    other = User.query.filter_by(login=email).first()
+    if other is not None and other.id != employee.id:
+        flash("Пользователь с таким email уже существует.", "error")
+        return redirect(url_for("clients.client_detail", client_id=employee.client_id))
+
+    employee.full_name = full_name
+    employee.email = email
+    employee.login = email
+    if password:
+        employee.set_password(password)
+    db.session.commit()
+    flash(f"Данные сотрудника {full_name} обновлены.", "info")
+    return redirect(url_for("clients.client_detail", client_id=employee.client_id))
+
+
 @clients_bp.route("/employees/<int:user_id>/toggle-active", methods=["POST"])
 @role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
 def toggle_employee(user_id):

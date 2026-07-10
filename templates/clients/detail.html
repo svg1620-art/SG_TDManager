@@ -140,9 +140,18 @@
             {% if e.is_active %}<span class="pill pill-ok">Активен</span>
             {% else %}<span class="pill pill-muted">Отключён</span>{% endif %}
           </td>
-          <td class="ta-right">
+          <td class="ta-right nowrap">
+            <details class="mini-menu">
+              <summary class="btn-link">изменить</summary>
+              <form method="post" action="{{ url_for('clients.edit_employee', user_id=e.id) }}" class="mini-edit">
+                <input type="text" name="full_name" value="{{ e.full_name }}" placeholder="ФИО" required>
+                <input type="email" name="email" class="mono" value="{{ e.email or e.login }}" placeholder="email (логин)" required>
+                <input type="text" name="password" class="mono" autocomplete="new-password" placeholder="новый пароль (необязательно)">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+              </form>
+            </details>
             <form method="post" action="{{ url_for('clients.toggle_employee', user_id=e.id) }}" style="display:inline">
-              <button type="submit" class="btn-link">{{ 'Отключить' if e.is_active else 'Включить' }}</button>
+              <button type="submit" class="btn-link {{ 'danger-link' if e.is_active else '' }}">{{ 'отключить' if e.is_active else 'включить' }}</button>
             </form>
           </td>
         </tr>
