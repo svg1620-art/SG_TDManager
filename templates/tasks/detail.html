@@ -130,6 +130,107 @@
   </div>
   {% endif %}
 
+  <!-- Лимит месяца клиента (методолог/админ) -->
+  {% if month_limit %}
+  <div class="card">
+    <h2 class="card-title">Лимит клиента · <span class="mono">{{ '%02d'|format(month_limit.month) }}.{{ month_limit.year }}</span></h2>
+    <div class="limit-row">
+      <div class="limit-cell">
+        <div class="meta-label">Эффективный лимит</div>
+        <div class="limit-value num">{{ '%.2f'|format(month_limit.effective) }} ч</div>
+      </div>
+      <div class="limit-cell">
+        <div class="meta-label">Расход за месяц</div>
+        <div class="limit-value num">{{ '%.2f'|format(month_limit.consumed) }} ч</div>
+      </div>
+      <div class="limit-cell">
+        <div class="meta-label">Остаток</div>
+        {% if month_limit.remaining < 0 %}
+        <div class="limit-value num neg">Минус {{ '%.2f'|format(-month_limit.remaining) }} ч</div>
+        {% else %}
+        <div class="limit-value num accent">{{ '%.2f'|format(month_limit.remaining) }} ч</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Трекинг времени (методолог/админ) -->
+  {% if is_staff %}
+  <div class="card">
+    <h2 class="card-title">Время</h2>
+
+    {% if can_log %}
+    <form method="post" action="{{ url_for('tasks.add_time', task_id=task.id) }}" class="time-form">
+      <div class="form-grid form-grid-3">
+        <div class="field">
+          <label>Часы <span class="dim">(напр. 1.5)</span> *</label>
+          <input type="text" inputmode="decimal" name="hours" class="mono" placeholder="1.5" required>
+        </div>
+        <div class="field">
+          <label>Дата выполнения</label>
+          <input type="date" name="work_date" class="mono" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}">
+        </div>
+        <div class="field">
+          <label>Заметка</label>
+          <input type="text" name="note" placeholder="необязательно">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Списать время</button>
+      </div>
+    </form>
+    {% else %}
+    <p class="empty-inline">Время можно списывать только по задачам, взятым в работу
+      (статусы «В работе», «На уточнении», «Выполнена», «Принята»).</p>
+    {% endif %}
+
+    {% if time_entries %}
+    <table class="data-table mt-16">
+      <thead>
+        <tr><th>Дата</th><th class="ta-right">Часы</th><th>Исполнитель</th><th>Заметка</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for e in time_entries %}
+        <tr>
+          <td class="mono">{{ e.work_date.strftime('%d.%m.%Y') }}</td>
+          <td class="ta-right num">{{ '%.2f'|format(e.hours) }}</td>
+          <td class="dim">{{ loggers.get(e.methodologist_id, '—') }}</td>
+          <td>{{ e.note or '—' }}</td>
+          <td class="ta-right nowrap">
+            {% if current_user.is_admin or e.methodologist_id == current_user.id %}
+            <details class="mini-menu">
+              <summary class="btn-link">изменить</summary>
+              <form method="post" action="{{ url_for('tasks.edit_time', entry_id=e.id) }}" class="mini-edit">
+                <input type="text" inputmode="decimal" name="hours" class="mono" value="{{ '%.2f'|format(e.hours) }}" required>
+                <input type="date" name="work_date" class="mono" value="{{ e.work_date.isoformat() }}" max="{{ today.isoformat() }}">
+                <input type="text" name="note" value="{{ e.note or '' }}" placeholder="заметка">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+              </form>
+            </details>
+            <form method="post" action="{{ url_for('tasks.delete_time', entry_id=e.id) }}"
+                  onsubmit="return confirm('Удалить запись времени?')" style="display:inline">
+              <button type="submit" class="btn-link danger-link">удалить</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="td-strong">Итого по задаче</td>
+          <td class="ta-right num td-strong">{{ '%.2f'|format(task.actual_hours) }}</td>
+          <td colspan="3"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <p class="empty-inline mt-16">Время ещё не списано.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Комментарии -->
   <div class="card">
     <h2 class="card-title">Комментарии</h2>

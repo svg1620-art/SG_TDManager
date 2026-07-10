@@ -1,4 +1,4 @@
-"""Задачи: создание клиентом, жизненный цикл, комментарии. Доступ по ролям."""
+"""Задачи: создание клиентом, жизненный цикл, комментарии, трекинг времени."""
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
@@ -22,17 +22,31 @@ from constants import (
     ROLE_ADMIN,
     ROLE_CLIENT,
     ROLE_METHODOLOGIST,
+    STATUS_ACCEPTED,
+    STATUS_CLARIFICATION,
+    STATUS_DONE,
     STATUS_ESTIMATE_PENDING,
+    STATUS_IN_PROGRESS,
     WORK_OTHER,
     WORK_TYPES,
 )
 from extensions import db
-from models import ClientOrg, Comment, Task, User
-from services.budgets import remaining_hours
+from models import ClientOrg, Comment, Task, TimeEntry, User
+from services.budgets import consumed_hours, effective_limit, remaining_hours
 from services.notifications import notify
 from services.tasks import ACTIONS, TransitionError, apply_action, available_actions
+from services.time_entries import recalc_task_actual
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/tasks")
+
+# Статусы, по которым можно списывать время (задача взята в работу или прошла её).
+LOGGABLE_STATUSES = {
+    STATUS_IN_PROGRESS,
+    STATUS_CLARIFICATION,
+    STATUS_DONE,
+    STATUS_ACCEPTED,
+}
+MAX_HOURS_PER_ENTRY = Decimal("24")
 
 
 # --------------------------------------------------------------------------- #
@@ -65,6 +79,55 @@ def _can_comment(task) -> bool:
     return False
 
 
+def _load_task_staff_or_403(task_id) -> Task:
+    """Загрузить задачу для операций трекинга: только методолог-владелец или админ."""
+    task = _load_task_or_403(task_id)  # 403, если методолог не владелец клиента
+    if not (current_user.is_admin or current_user.is_methodologist):
+        abort(403)
+    return task
+
+
+def _parse_hours(raw):
+    if raw is None or str(raw).strip() == "":
+        raise ValueError("Укажите часы (например, 1.5).")
+    try:
+        hours = Decimal(str(raw).replace(",", ".").strip())
+    except (InvalidOperation, ValueError):
+        raise ValueError("Часы должны быть числом (например, 1.5).")
+    if hours <= 0:
+        raise ValueError("Часы должны быть больше нуля.")
+    if hours > MAX_HOURS_PER_ENTRY:
+        raise ValueError("Слишком много часов в одной записи (максимум 24).")
+    return hours
+
+
+def _parse_work_date(raw):
+    if not raw:
+        return date.today()
+    try:
+        d = date.fromisoformat(raw)
+    except ValueError:
+        raise ValueError("Некорректная дата.")
+    if d > date.today():
+        raise ValueError("Дата не может быть в будущем.")
+    return d
+
+
+def _maybe_notify_minus(task, year, month, remaining_before):
+    """Если после списания остаток месяца впервые ушёл в минус — уведомить методолога."""
+    remaining_after = remaining_hours(task.client_id, year, month)
+    if remaining_before >= 0 and remaining_after < 0:
+        org = task.client
+        if org and org.methodologist_id:
+            over = -remaining_after
+            notify(
+                org.methodologist_id,
+                "budget_minus",
+                f"Клиент {org.name} ушёл в минус по лимиту {month:02d}.{year} на {over} ч.",
+                task_id=task.id,
+            )
+
+
 # --------------------------------------------------------------------------- #
 # Список задач (роль-зависимый)
 # --------------------------------------------------------------------------- #
@@ -91,11 +154,26 @@ def list_tasks():
 
     show_client_col = current_user.is_admin or current_user.is_methodologist
 
+    # Короткая строка «Лимит / Расход / Остаток» за текущий месяц для клиента.
+    month_summary = None
+    if current_user.is_client and current_user.client_id:
+        today = date.today()
+        eff = effective_limit(current_user.client_id, today.year, today.month)
+        cons = consumed_hours(current_user.client_id, today.year, today.month)
+        month_summary = {
+            "year": today.year,
+            "month": today.month,
+            "effective": eff,
+            "consumed": cons,
+            "remaining": eff - cons,
+        }
+
     return render_template(
         "tasks/list.html",
         tasks=tasks,
         authors=authors,
         show_client_col=show_client_col,
+        month_summary=month_summary,
     )
 
 
@@ -164,15 +242,41 @@ def task_detail(task_id):
     } if author_ids else {}
 
     actions = available_actions(task, current_user)
+    today = date.today()
 
     # Предупреждение о превышении лимита для клиента на этапе подтверждения оценки.
     limit_warning = None
     if current_user.is_client and task.status == STATUS_ESTIMATE_PENDING and task.estimated_hours:
-        today = date.today()
         remaining = remaining_hours(task.client_id, today.year, today.month)
         if Decimal(str(task.estimated_hours)) > remaining:
             over = Decimal(str(task.estimated_hours)) - remaining
             limit_warning = f"Эта задача выведет вас за лимит месяца на {over} ч."
+
+    is_staff = current_user.is_admin or current_user.is_methodologist
+
+    # Записи времени + исполнители (ФИО важно: клиент мог быть передан другому методологу).
+    time_entries = (
+        TimeEntry.query.filter_by(task_id=task.id)
+        .order_by(TimeEntry.work_date.desc(), TimeEntry.created_at.desc())
+        .all()
+    )
+    logger_ids = {e.methodologist_id for e in time_entries if e.methodologist_id}
+    loggers = {
+        u.id: u.full_name for u in User.query.filter(User.id.in_(logger_ids)).all()
+    } if logger_ids else {}
+
+    # Блок лимита текущего месяца клиента (для методолога/админа).
+    month_limit = None
+    if is_staff:
+        eff = effective_limit(task.client_id, today.year, today.month)
+        cons = consumed_hours(task.client_id, today.year, today.month)
+        month_limit = {
+            "year": today.year,
+            "month": today.month,
+            "effective": eff,
+            "consumed": cons,
+            "remaining": eff - cons,
+        }
 
     return render_template(
         "tasks/detail.html",
@@ -183,7 +287,12 @@ def task_detail(task_id):
         can_comment=_can_comment(task),
         limit_warning=limit_warning,
         author=db.session.get(User, task.created_by) if task.created_by else None,
-        is_staff=current_user.is_admin or current_user.is_methodologist,
+        is_staff=is_staff,
+        time_entries=time_entries,
+        loggers=loggers,
+        can_log=is_staff and task.status in LOGGABLE_STATUSES,
+        month_limit=month_limit,
+        today=today,
     )
 
 
@@ -296,4 +405,92 @@ def add_comment(task_id):
             )
 
     flash("Комментарий добавлен.", "info")
+    return redirect(url_for("tasks.task_detail", task_id=task.id))
+
+
+# --------------------------------------------------------------------------- #
+# Трекинг времени (методолог-владелец / админ)
+# --------------------------------------------------------------------------- #
+@tasks_bp.route("/<int:task_id>/time", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def add_time(task_id):
+    task = _load_task_staff_or_403(task_id)
+
+    if task.status not in LOGGABLE_STATUSES:
+        flash("Время можно списывать только по задачам, взятым в работу.", "error")
+        return redirect(url_for("tasks.task_detail", task_id=task.id))
+
+    try:
+        hours = _parse_hours(request.form.get("hours"))
+        work_date = _parse_work_date(request.form.get("work_date"))
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("tasks.task_detail", task_id=task.id))
+
+    note = (request.form.get("note") or "").strip() or None
+
+    # Остаток месяца записи ДО списания (для сигнала о переходе в минус).
+    remaining_before = remaining_hours(task.client_id, work_date.year, work_date.month)
+
+    entry = TimeEntry(
+        task_id=task.id,
+        methodologist_id=current_user.id,
+        hours=hours,
+        work_date=work_date,
+        note=note,
+    )
+    db.session.add(entry)
+    recalc_task_actual(task.id)  # коммитит и пересчитывает кэш actual_hours
+
+    _maybe_notify_minus(task, work_date.year, work_date.month, remaining_before)
+
+    flash("Запись времени добавлена.", "info")
+    return redirect(url_for("tasks.task_detail", task_id=task.id))
+
+
+def _load_entry_staff_or_403(entry_id):
+    """Запись + проверка прав: автор-методолог записи или админ; владение клиентом."""
+    entry = db.session.get(TimeEntry, entry_id)
+    if entry is None:
+        abort(404)
+    task = _load_task_staff_or_403(entry.task_id)  # владение клиентом + роль staff
+    # Редактировать/удалять может автор записи или админ.
+    if not current_user.is_admin and entry.methodologist_id != current_user.id:
+        abort(403)
+    return entry, task
+
+
+@tasks_bp.route("/time/<int:entry_id>/edit", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def edit_time(entry_id):
+    entry, task = _load_entry_staff_or_403(entry_id)
+
+    try:
+        hours = _parse_hours(request.form.get("hours"))
+        work_date = _parse_work_date(request.form.get("work_date"))
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("tasks.task_detail", task_id=task.id))
+
+    remaining_before = remaining_hours(task.client_id, work_date.year, work_date.month)
+
+    entry.hours = hours
+    entry.work_date = work_date
+    entry.note = (request.form.get("note") or "").strip() or None
+    recalc_task_actual(task.id)
+
+    _maybe_notify_minus(task, work_date.year, work_date.month, remaining_before)
+
+    flash("Запись обновлена.", "info")
+    return redirect(url_for("tasks.task_detail", task_id=task.id))
+
+
+@tasks_bp.route("/time/<int:entry_id>/delete", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def delete_time(entry_id):
+    entry, task = _load_entry_staff_or_403(entry_id)
+    db.session.delete(entry)
+    db.session.commit()
+    recalc_task_actual(task.id)
+    flash("Запись удалена.", "info")
     return redirect(url_for("tasks.task_detail", task_id=task.id))

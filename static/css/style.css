@@ -921,3 +921,108 @@ a:hover {
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
+
+/* ===================== Стадия 4: трекинг времени ===================== */
+
+/* Блок лимита месяца в карточке задачи */
+.limit-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.limit-cell {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.limit-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* Короткая строка лимита в списке задач клиента */
+.limit-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 14px 20px;
+  margin-bottom: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.limit-strip b {
+  color: var(--text);
+  margin-left: 6px;
+}
+
+/* Форма записи времени */
+.time-form {
+  margin-bottom: 4px;
+}
+.data-table tfoot td {
+  padding: 13px 18px;
+  border-top: 2px solid var(--border-strong);
+}
+.nowrap {
+  white-space: nowrap;
+}
+.danger-link {
+  color: #d98a97;
+  margin-left: 10px;
+}
+.danger-link:hover {
+  color: var(--danger);
+}
+
+/* Инлайн-редактирование записи времени */
+.mini-menu {
+  display: inline;
+}
+.mini-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline;
+}
+.mini-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.mini-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.mini-edit input {
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+.mini-edit input[name="hours"] {
+  width: 80px;
+  font-family: var(--font-mono);
+}
+.mini-edit input[name="note"] {
+  flex: 1;
+  min-width: 120px;
+}
+
+@media (max-width: 640px) {
+  .limit-row {
+    grid-template-columns: 1fr;
+  }
+}

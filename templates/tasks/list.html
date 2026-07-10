@@ -18,6 +18,19 @@
     {% endif %}
   </div>
 
+  {% if month_summary %}
+  <div class="limit-strip">
+    <span>Месяц <b class="mono">{{ '%02d'|format(month_summary.month) }}.{{ month_summary.year }}</b></span>
+    <span>Лимит <b class="num">{{ '%.2f'|format(month_summary.effective) }} ч</b></span>
+    <span>Расход <b class="num">{{ '%.2f'|format(month_summary.consumed) }} ч</b></span>
+    {% if month_summary.remaining < 0 %}
+    <span>Остаток <b class="num neg">Минус {{ '%.2f'|format(-month_summary.remaining) }} ч</b></span>
+    {% else %}
+    <span>Остаток <b class="num accent">{{ '%.2f'|format(month_summary.remaining) }} ч</b></span>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if tasks %}
   <div class="card table-card">
     <table class="data-table">

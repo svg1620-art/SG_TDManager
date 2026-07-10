@@ -5,11 +5,11 @@
 """
 from decimal import Decimal
 
-from sqlalchemy import func
+from sqlalchemy import extract, func
 from sqlalchemy.exc import IntegrityError
 
 from extensions import db
-from models import BudgetAdjustment, ClientOrg, MonthlyBudget
+from models import BudgetAdjustment, ClientOrg, MonthlyBudget, Task, TimeEntry
 
 ZERO = Decimal("0")
 
@@ -103,12 +103,23 @@ def add_hours(client_id, year, month, delta_hours, reason, created_by) -> Budget
 
 
 def consumed_hours(client_id, year, month) -> Decimal:
-    """Расход часов за месяц.
+    """Расход часов за месяц = Σ time_entries.hours по всем задачам клиента,
+    где work_date попадает в (year, month).
 
-    TODO(Стадия 4): реальный расчёт = Σ time_entries.hours, где work_date попадает
-    в (year, month) по всем задачам клиента. Пока заглушка — 0.
+    Атрибуция строго по work_date записи, а не по дате закрытия задачи: задача,
+    тянущаяся через границу месяца, распределяется по фактическим датам записей.
     """
-    return ZERO
+    total = (
+        db.session.query(func.coalesce(func.sum(TimeEntry.hours), 0))
+        .join(Task, TimeEntry.task_id == Task.id)
+        .filter(
+            Task.client_id == client_id,
+            extract("year", TimeEntry.work_date) == year,
+            extract("month", TimeEntry.work_date) == month,
+        )
+        .scalar()
+    )
+    return _to_decimal(total)
 
 
 def remaining_hours(client_id, year, month) -> Decimal:
