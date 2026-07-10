@@ -129,14 +129,13 @@
     {% if employees %}
     <table class="data-table">
       <thead>
-        <tr><th>ФИО</th><th>Логин</th><th>Email</th><th class="ta-right">Статус</th><th></th></tr>
+        <tr><th>ФИО</th><th>Email (логин)</th><th class="ta-right">Статус</th><th></th></tr>
       </thead>
       <tbody>
         {% for e in employees %}
         <tr class="{{ '' if e.is_active else 'row-muted' }}">
           <td class="td-strong">{{ e.full_name }}</td>
-          <td class="mono">{{ e.login }}</td>
-          <td class="dim">{{ e.email or '—' }}</td>
+          <td class="mono">{{ e.email or e.login }}</td>
           <td class="ta-right">
             {% if e.is_active %}<span class="pill pill-ok">Активен</span>
             {% else %}<span class="pill pill-muted">Отключён</span>{% endif %}
@@ -163,15 +162,11 @@
             <input type="text" id="emp_full_name" name="full_name" required>
           </div>
           <div class="field">
-            <label for="emp_login">Логин *</label>
-            <input type="text" id="emp_login" name="login" class="mono" autocomplete="off" required>
+            <label for="emp_email">Email (логин) *</label>
+            <input type="email" id="emp_email" name="email" class="mono" autocomplete="off" required>
           </div>
         </div>
         <div class="form-grid">
-          <div class="field">
-            <label for="emp_email">Email</label>
-            <input type="email" id="emp_email" name="email">
-          </div>
           <div class="field">
             <label for="emp_password">Пароль *</label>
             <input type="text" id="emp_password" name="password" class="mono" autocomplete="new-password" required>
@@ -180,7 +175,7 @@
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Добавить сотрудника</button>
         </div>
-        <p class="hint dim">Логин и пароль задаёт методолог и передаёт клиенту вне платформы.</p>
+        <p class="hint dim">Email — это и есть логин. Пароль задаёт методолог и передаёт клиенту вне платформы.</p>
       </form>
     </details>
   </div>

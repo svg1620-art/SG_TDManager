@@ -88,19 +88,19 @@ def dashboard():
 def methodologists():
     if request.method == "POST":
         full_name = (request.form.get("full_name") or "").strip()
-        login = (request.form.get("login") or "").strip()
-        email = (request.form.get("email") or "").strip() or None
+        email = (request.form.get("email") or "").strip()
         password = request.form.get("password") or ""
 
-        if not full_name or not login or not password:
-            flash("ФИО, логин и пароль обязательны.", "error")
-        elif User.query.filter_by(login=login).first() is not None:
-            flash("Логин уже используется.", "error")
+        if not full_name or not email or not password:
+            flash("ФИО, email и пароль обязательны.", "error")
+        elif User.query.filter_by(login=email).first() is not None:
+            flash("Пользователь с таким email уже существует.", "error")
         else:
+            # Логин = email: отдельного логина у методологов нет.
             m = User(
                 role=ROLE_METHODOLOGIST,
                 full_name=full_name,
-                login=login,
+                login=email,
                 email=email,
                 is_active=True,
             )

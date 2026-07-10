@@ -390,22 +390,22 @@ def add_employee(client_id):
     org = _load_client_or_403(client_id)
 
     full_name = (request.form.get("full_name") or "").strip()
-    login = (request.form.get("login") or "").strip()
-    email = (request.form.get("email") or "").strip() or None
+    email = (request.form.get("email") or "").strip()
     password = request.form.get("password") or ""
 
-    if not full_name or not login or not password:
-        flash("ФИО, логин и пароль обязательны.", "error")
+    if not full_name or not email or not password:
+        flash("ФИО, email и пароль обязательны.", "error")
         return redirect(url_for("clients.client_detail", client_id=org.id))
 
-    if User.query.filter_by(login=login).first() is not None:
-        flash("Логин уже используется.", "error")
+    if User.query.filter_by(login=email).first() is not None:
+        flash("Пользователь с таким email уже существует.", "error")
         return redirect(url_for("clients.client_detail", client_id=org.id))
 
+    # Логин = email: отдельного логина у сотрудников нет.
     employee = User(
         role=ROLE_CLIENT,
         full_name=full_name,
-        login=login,
+        login=email,
         email=email,
         client_id=org.id,
         is_active=True,
