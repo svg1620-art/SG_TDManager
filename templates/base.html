@@ -25,6 +25,15 @@
       <span>SG <span class="brand-sep">·</span> <span class="brand-sub">T&amp;D manager</span></span>
     </a>
 
+    {% if current_user.is_admin or current_user.is_methodologist %}
+    <nav class="app-nav">
+      <a class="nav-link{% if request.blueprint in ('admin', 'methodologist') %} active{% endif %}"
+         href="{{ url_for('auth.index') }}">Дашборд</a>
+      <a class="nav-link{% if request.blueprint == 'clients' %} active{% endif %}"
+         href="{{ url_for('clients.list_clients') }}">Клиенты</a>
+    </nav>
+    {% endif %}
+
     <div class="header-right">
       <div class="user-box">
         <span class="user-name">{{ current_user.full_name }}</span>

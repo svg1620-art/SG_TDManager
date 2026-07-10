@@ -379,10 +379,286 @@ a:hover {
   box-shadow: 0 0 0 3px var(--blue-soft);
 }
 
+/* ---------- Навигация в шапке ---------- */
+.app-nav {
+  display: flex;
+  gap: 6px;
+  margin-right: auto;
+  margin-left: 22px;
+}
+.nav-link {
+  padding: 7px 14px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 14px;
+}
+.nav-link:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+.nav-link.active {
+  color: var(--text);
+  background: var(--blue-soft);
+}
+
+/* ---------- Заголовок страницы с действиями ---------- */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.page-head .page-subtitle {
+  margin: 0;
+}
+.page-head-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.breadcrumbs {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------- Вкладки ---------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 9px 16px;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab:hover {
+  color: var(--text);
+}
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--blue);
+}
+
+/* ---------- Таблицы ---------- */
+.table-card {
+  padding: 6px 0;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.data-table thead th {
+  text-align: left;
+  padding: 12px 18px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+}
+.data-table tbody td {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.row-link {
+  cursor: pointer;
+}
+.row-muted td {
+  opacity: 0.5;
+}
+.row-current {
+  background: var(--blue-soft) !important;
+}
+.td-strong {
+  font-weight: 700;
+}
+.ta-right {
+  text-align: right;
+}
+.dim {
+  color: var(--text-dim);
+}
+.accent {
+  color: var(--cyan);
+}
+.pos {
+  color: var(--success);
+}
+.neg {
+  color: var(--danger);
+}
+
+/* ---------- Пилюли-статусы ---------- */
+.pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.pill-ok {
+  background: rgba(53, 208, 160, 0.14);
+  color: var(--success);
+}
+.pill-muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+.pill-accent {
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  margin-left: 6px;
+}
+
+/* ---------- Карточки-контент ---------- */
+.card-title {
+  margin: 0 0 18px;
+  font-size: 17px;
+  font-weight: 800;
+}
+.subsection {
+  margin: 26px 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.notes-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.notes-block p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
+/* ---------- Формы ---------- */
+.form-card {
+  max-width: 720px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+.form-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field textarea {
+  resize: vertical;
+}
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+.field input.num,
+.field input.mono {
+  font-family: var(--font-mono);
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.hint {
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+.mt-16 {
+  margin-top: 16px;
+}
+
+/* details-раскрывашка для инлайн-форм */
+.inline-form {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.inline-form > summary {
+  display: inline-flex;
+  list-style: none;
+  cursor: pointer;
+}
+.inline-form > summary::-webkit-details-marker {
+  display: none;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+.btn-link:hover {
+  color: var(--blue-hover);
+}
+
+/* ---------- Пустые состояния ---------- */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+}
+.empty-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+.empty-state .btn {
+  margin-top: 18px;
+}
+.empty-inline {
+  color: var(--text-muted);
+  margin: 0;
+}
+
 /* ---------- Адаптив ---------- */
 @media (max-width: 640px) {
   .app-header {
     padding: 12px 16px;
+    flex-wrap: wrap;
   }
   .brand-sub {
     display: none;
@@ -390,10 +666,26 @@ a:hover {
   .user-box {
     display: none;
   }
+  .app-nav {
+    margin-left: 0;
+    order: 3;
+    width: 100%;
+  }
   .app-main {
     padding: 24px 16px 48px;
   }
   .page-title {
     font-size: 22px;
+  }
+  .form-grid,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .data-table {
+    font-size: 13px;
+  }
+  .data-table thead th,
+  .data-table tbody td {
+    padding: 10px 12px;
   }
 }

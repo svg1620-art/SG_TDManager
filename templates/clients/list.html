@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Клиенты — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Клиенты</h1>
+      <p class="page-subtitle">
+        {% if show_archived %}Архивные организации{% else %}Активные организации{% endif %}
+      </p>
+    </div>
+    <div class="page-head-actions">
+      {% if current_user.is_admin %}
+      <form method="post" action="{{ url_for('clients.recalc_budgets') }}" style="display:inline">
+        <button type="submit" class="btn btn-ghost" title="Создать бюджеты текущего месяца активным клиентам">
+          Пересчитать бюджеты
+        </button>
+      </form>
+      {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('clients.new_client') }}">+ Новый клиент</a>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <a class="tab{% if not show_archived %} active{% endif %}"
+       href="{{ url_for('clients.list_clients') }}">Активные</a>
+    <a class="tab{% if show_archived %} active{% endif %}"
+       href="{{ url_for('clients.list_clients', archived=1) }}">Архив</a>
+  </div>
+
+  {% if orgs %}
+  <div class="card table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Организация</th>
+          {% if current_user.is_admin %}<th>Методолог</th>{% endif %}
+          <th class="ta-right">Лимит/мес</th>
+          <th>Контракт</th>
+          <th class="ta-right">Сотрудников</th>
+          <th class="ta-right">Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for org in orgs %}
+        <tr onclick="window.location='{{ url_for('clients.client_detail', client_id=org.id) }}'" class="row-link">
+          <td class="td-strong">{{ org.name }}</td>
+          {% if current_user.is_admin %}
+          <td>{{ org.methodologist.full_name if org.methodologist else '—' }}</td>
+          {% endif %}
+          <td class="ta-right num">{{ '%.1f'|format(org.default_monthly_hours) }}</td>
+          <td>
+            {% if org.contract_start %}
+              <span class="num">{{ org.contract_start.strftime('%d.%m.%Y') }}</span>
+              {% if org.contract_end %}<span class="dim">→</span>
+              <span class="num">{{ org.contract_end.strftime('%d.%m.%Y') }}</span>{% endif %}
+            {% else %}<span class="dim">—</span>{% endif %}
+          </td>
+          <td class="ta-right num">{{ employee_counts.get(org.id, 0) }}</td>
+          <td class="ta-right">
+            {% if org.is_active %}
+              <span class="pill pill-ok">Активен</span>
+            {% else %}
+              <span class="pill pill-muted">Архив</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card empty-state">
+    {% if show_archived %}
+      <p>В архиве пока нет организаций.</p>
+    {% else %}
+      <p class="empty-title">Пока нет клиентов</p>
+      <p class="dim">Создайте первую организацию-клиента, чтобы задавать лимиты и заводить сотрудников.</p>
+      <a class="btn btn-primary" href="{{ url_for('clients.new_client') }}">+ Создать первого клиента</a>
+    {% endif %}
+  </div>
+  {% endif %}
+{% endblock %}

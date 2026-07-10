@@ -20,13 +20,30 @@ logger = logging.getLogger(__name__)
 _scheduler = None
 
 
+def _monthly_budget_job(app) -> None:
+    """1-е число: создать месячные бюджеты активным клиентам из default_monthly_hours."""
+    with app.app_context():
+        from datetime import date
+
+        from services.budgets import create_month_budgets_for_active_clients
+
+        today = date.today()
+        created = create_month_budgets_for_active_clients(today.year, today.month)
+        logger.info(
+            "Cron месячных бюджетов: создано %s записей за %s-%02d.",
+            created,
+            today.year,
+            today.month,
+        )
+
+
 def _init_scheduler(app) -> None:
-    """Инициализирует BackgroundScheduler без задач (задачи добавим в стадиях 2/7/8).
+    """Инициализирует BackgroundScheduler и регистрирует cron-задачи.
 
     Гвард: под gunicorn с несколькими воркерами планировщик должен стартовать один раз.
     Управляется env RUN_SCHEDULER (по умолчанию включён). Для мульти-воркерной
     конфигурации выставить RUN_SCHEDULER=0 у всех воркеров кроме одного (или
-    вынести планировщик в отдельный процесс).
+    вынести планировщик в отдельный процесс). Procfile пинит --workers 1.
     """
     global _scheduler
 
@@ -41,11 +58,19 @@ def _init_scheduler(app) -> None:
         return
 
     from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
 
     _scheduler = BackgroundScheduler(timezone="UTC")
-    # Задачи (месячные бюджеты 1-го числа, Telegram-пульс, AI-отчёты 5-го) добавим позже.
+    # 1-е число каждого месяца в 00:05 — автосоздание месячных бюджетов.
+    _scheduler.add_job(
+        lambda: _monthly_budget_job(app),
+        CronTrigger(day=1, hour=0, minute=5),
+        id="monthly_budgets",
+        replace_existing=True,
+    )
+    # Задачи Telegram-пульса и AI-отчётов (Стадии 7/8) добавим позже.
     _scheduler.start()
-    logger.info("APScheduler запущен (без задач — заглушка Стадии 1).")
+    logger.info("APScheduler запущен (задача monthly_budgets зарегистрирована).")
 
 
 def create_app(config_class=Config) -> Flask:
@@ -60,12 +85,14 @@ def create_app(config_class=Config) -> Flask:
     from blueprints.admin import admin_bp
     from blueprints.auth import auth_bp
     from blueprints.client import client_bp
+    from blueprints.clients import clients_bp
     from blueprints.methodologist import methodologist_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(methodologist_bp)
     app.register_blueprint(client_bp)
+    app.register_blueprint(clients_bp)
 
     # Справочники доступны во всех шаблонах (для меток статусов/приоритетов/типов).
     @app.context_processor

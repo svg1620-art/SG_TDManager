@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}{{ org.name }} — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs">
+    <a href="{{ url_for('clients.list_clients') }}">Клиенты</a>
+    <span class="dim">/</span>
+    <span>{{ org.name }}</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">
+        {{ org.name }}
+        {% if not org.is_active %}<span class="pill pill-muted">Архив</span>{% endif %}
+      </h1>
+      <p class="page-subtitle">
+        Профиль клиента ·
+        <span class="mono">{{ '%02d'|format(current_month) }}.{{ current_year }}</span> —
+        эффективный лимит <span class="num accent">{{ '%.2f'|format(current_effective) }} ч</span>
+      </p>
+    </div>
+    <div class="page-head-actions">
+      <a class="btn btn-ghost" href="{{ url_for('clients.edit_client', client_id=org.id) }}">Редактировать</a>
+      <form method="post" action="{{ url_for('clients.toggle_active', client_id=org.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-ghost">
+          {{ 'Активировать' if not org.is_active else 'В архив' }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Профиль -->
+  <div class="card">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Методолог</div>
+        <div class="meta-value">{{ org.methodologist.full_name if org.methodologist else '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Лимит по умолчанию</div>
+        <div class="meta-value num">{{ '%.2f'|format(org.default_monthly_hours) }} ч</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Срок контракта</div>
+        <div class="meta-value">{{ org.contract_months ~ ' мес.' if org.contract_months else '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Период</div>
+        <div class="meta-value num">
+          {% if org.contract_start %}{{ org.contract_start.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+          {% if org.contract_end %} → {{ org.contract_end.strftime('%d.%m.%Y') }}{% endif %}
+        </div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Telegram chat_id</div>
+        <div class="meta-value mono">{{ org.telegram_chat_id or '—' }}</div>
+      </div>
+    </div>
+    {% if org.notes %}
+    <div class="notes-block">
+      <div class="meta-label">Заметки</div>
+      <p>{{ org.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Сотрудники -->
+  <div class="card">
+    <h2 class="card-title">Сотрудники</h2>
+    {% if employees %}
+    <table class="data-table">
+      <thead>
+        <tr><th>ФИО</th><th>Логин</th><th>Email</th><th class="ta-right">Статус</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for e in employees %}
+        <tr class="{{ '' if e.is_active else 'row-muted' }}">
+          <td class="td-strong">{{ e.full_name }}</td>
+          <td class="mono">{{ e.login }}</td>
+          <td class="dim">{{ e.email or '—' }}</td>
+          <td class="ta-right">
+            {% if e.is_active %}<span class="pill pill-ok">Активен</span>
+            {% else %}<span class="pill pill-muted">Отключён</span>{% endif %}
+          </td>
+          <td class="ta-right">
+            <form method="post" action="{{ url_for('clients.toggle_employee', user_id=e.id) }}" style="display:inline">
+              <button type="submit" class="btn-link">{{ 'Отключить' if e.is_active else 'Включить' }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-inline">У клиента нет сотрудников — добавьте учётку ниже.</p>
+    {% endif %}
+
+    <details class="inline-form" {% if not employees %}open{% endif %}>
+      <summary class="btn btn-ghost">+ Добавить сотрудника</summary>
+      <form method="post" action="{{ url_for('clients.add_employee', client_id=org.id) }}" class="mt-16">
+        <div class="form-grid">
+          <div class="field">
+            <label for="emp_full_name">ФИО *</label>
+            <input type="text" id="emp_full_name" name="full_name" required>
+          </div>
+          <div class="field">
+            <label for="emp_login">Логин *</label>
+            <input type="text" id="emp_login" name="login" class="mono" autocomplete="off" required>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="emp_email">Email</label>
+            <input type="email" id="emp_email" name="email">
+          </div>
+          <div class="field">
+            <label for="emp_password">Пароль *</label>
+            <input type="text" id="emp_password" name="password" class="mono" autocomplete="new-password" required>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Добавить сотрудника</button>
+        </div>
+        <p class="hint dim">Логин и пароль задаёт методолог и передаёт клиенту вне платформы.</p>
+      </form>
+    </details>
+  </div>
+
+  <!-- Лимиты по месяцам -->
+  <div class="card">
+    <h2 class="card-title">Лимиты по месяцам</h2>
+    {% if budget_rows %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Месяц</th>
+          <th class="ta-right">База, ч</th>
+          <th class="ta-right">Добавления, ч</th>
+          <th class="ta-right">Эффективный, ч</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in budget_rows %}
+        <tr class="{{ 'row-current' if r.is_current else '' }}">
+          <td class="mono">
+            {{ '%02d'|format(r.month) }}.{{ r.year }}
+            {% if r.is_current %}<span class="pill pill-accent">текущий</span>{% endif %}
+          </td>
+          <td class="ta-right num">{{ '%.2f'|format(r.base) }}</td>
+          <td class="ta-right num {{ 'pos' if r.adjustments > 0 else ('neg' if r.adjustments < 0 else 'dim') }}">
+            {{ '%+.2f'|format(r.adjustments) if r.adjustments != 0 else '0.00' }}
+          </td>
+          <td class="ta-right num accent">{{ '%.2f'|format(r.effective) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-inline">Лимиты на месяцы ещё не задавались. По умолчанию используется
+      <span class="num">{{ '%.2f'|format(org.default_monthly_hours) }} ч/мес</span>.</p>
+    {% endif %}
+
+    <details class="inline-form">
+      <summary class="btn btn-ghost">Задать / изменить лимит на месяц</summary>
+      <form method="post" action="{{ url_for('clients.set_budget', client_id=org.id) }}" class="mt-16">
+        <div class="form-grid form-grid-3">
+          <div class="field">
+            <label for="b_year">Год</label>
+            <input type="number" id="b_year" name="year" class="num" value="{{ current_year }}" required>
+          </div>
+          <div class="field">
+            <label for="b_month">Месяц</label>
+            <input type="number" id="b_month" name="month" class="num" min="1" max="12" value="{{ current_month }}" required>
+          </div>
+          <div class="field">
+            <label for="b_hours">Базовый лимит, ч</label>
+            <input type="text" inputmode="decimal" id="b_hours" name="base_limit_hours" class="mono"
+                   value="{{ '%.2f'|format(org.default_monthly_hours) }}" required>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Сохранить лимит</button>
+        </div>
+      </form>
+    </details>
+  </div>
+
+  <!-- Добавление часов + аудит -->
+  <div class="card">
+    <h2 class="card-title">Добавление часов (расширение тарифа)</h2>
+
+    <details class="inline-form">
+      <summary class="btn btn-ghost">+ Добавить часы</summary>
+      <form method="post" action="{{ url_for('clients.add_adjustment', client_id=org.id) }}" class="mt-16">
+        <div class="form-grid form-grid-3">
+          <div class="field">
+            <label for="a_year">Год</label>
+            <input type="number" id="a_year" name="year" class="num" value="{{ current_year }}" required>
+          </div>
+          <div class="field">
+            <label for="a_month">Месяц</label>
+            <input type="number" id="a_month" name="month" class="num" min="1" max="12" value="{{ current_month }}" required>
+          </div>
+          <div class="field">
+            <label for="a_delta">Часы (± для коррекции)</label>
+            <input type="text" inputmode="decimal" id="a_delta" name="delta_hours" class="mono" placeholder="+10" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="a_reason">Причина *</label>
+          <input type="text" id="a_reason" name="reason" placeholder="Оплата счёта №… расширение +10 ч" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Добавить часы</button>
+        </div>
+      </form>
+    </details>
+
+    <h3 class="subsection">История добавлений <span class="dim">(аудит)</span></h3>
+    {% if adjustments %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Дата</th><th>Месяц</th><th class="ta-right">Часы</th><th>Причина</th><th>Кто</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in adjustments %}
+        <tr>
+          <td class="mono dim">{{ a.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+          <td class="mono">{{ '%02d'|format(a.month) }}.{{ a.year }}</td>
+          <td class="ta-right num {{ 'pos' if a.delta_hours > 0 else 'neg' }}">{{ '%+.2f'|format(a.delta_hours) }}</td>
+          <td>{{ a.reason or '—' }}</td>
+          <td class="dim">{{ authors.get(a.created_by, '—') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-inline">Добавлений часов ещё не было.</p>
+    {% endif %}
+  </div>
+{% endblock %}
