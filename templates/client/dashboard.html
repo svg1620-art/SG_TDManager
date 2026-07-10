@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Дашборд клиента — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">SG_T&amp;D_manager</h1>
+  <p class="page-subtitle">Личный кабинет клиента</p>
+
+  <div class="card">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Пользователь</div>
+        <div class="meta-value">{{ current_user.full_name }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Роль</div>
+        <div class="meta-value"><span class="role-pill">{{ ROLE_LABELS.get(current_user.role) }}</span></div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Организация</div>
+        <div class="meta-value">{{ org.name if org else "—" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stub">
+      <span class="stub-badge">Скоро</span>
+      <span>Создание задач, лимит и расход часов, статусы, комментарии и месячный отчёт появятся в следующих стадиях.</span>
+    </div>
+  </div>
+{% endblock %}

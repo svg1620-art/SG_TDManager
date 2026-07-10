@@ -1,0 +1,399 @@
+/* SG_T&D_manager — фирменная тёмная тема.
+   База #0A0A0D, синий #1467F5, циан #00BFDC.
+   Шрифты: Manrope (интерфейс), JetBrains Mono (числовые данные). */
+
+:root {
+  --bg: #0a0a0d;
+  --bg-elev: #121218;
+  --bg-card: #16161d;
+  --border: #24242e;
+  --border-strong: #33333f;
+  --text: #eef0f4;
+  --text-muted: #9aa0ac;
+  --text-dim: #6b7280;
+  --blue: #1467f5;
+  --blue-hover: #2f7bff;
+  --cyan: #00bfdc;
+  --cyan-soft: rgba(0, 191, 220, 0.14);
+  --blue-soft: rgba(20, 103, 245, 0.14);
+  --danger: #ff5470;
+  --success: #35d0a0;
+  --warning: #f5b014;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Тонкое фоновое свечение бренда */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60% 55% at 82% -8%, rgba(20, 103, 245, 0.16), transparent 60%),
+    radial-gradient(50% 45% at 0% 100%, rgba(0, 191, 220, 0.10), transparent 60%);
+  pointer-events: none;
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--blue-hover);
+}
+
+/* ---------- Числовые данные ---------- */
+.mono,
+.num {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---------- Шапка ---------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: rgba(10, 10, 13, 0.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--text);
+  font-size: 17px;
+}
+.brand:hover {
+  color: var(--text);
+}
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(20, 103, 245, 0.4);
+}
+.brand-sep {
+  color: var(--cyan);
+  opacity: 0.9;
+}
+.brand-sub {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+.user-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.user-role {
+  font-size: 12px;
+  color: var(--cyan);
+}
+
+/* Колокольчик-заглушка */
+.bell {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-muted);
+  cursor: default;
+}
+.bell svg {
+  width: 18px;
+  height: 18px;
+}
+.bell .dot {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 0 2px var(--bg-elev);
+}
+
+/* ---------- Кнопки ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--blue-hover);
+  color: #fff;
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-muted);
+}
+.btn-ghost:hover {
+  border-color: var(--cyan);
+  color: var(--text);
+}
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ---------- Основной контейнер ---------- */
+.app-main {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.page-subtitle {
+  margin: 0 0 28px;
+  color: var(--text-muted);
+}
+
+/* ---------- Карточки ---------- */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.card + .card {
+  margin-top: 18px;
+}
+
+.stub {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-muted);
+}
+.stub-badge {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+.meta-item {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.meta-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.meta-value {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* ---------- Бейджи ролей ---------- */
+.role-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 191, 220, 0.3);
+}
+
+/* ---------- Flash-сообщения ---------- */
+.flashes {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.flash {
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  font-size: 14px;
+  background: var(--bg-elev);
+}
+.flash-error {
+  border-color: rgba(255, 84, 112, 0.5);
+  color: #ffb3c0;
+  background: rgba(255, 84, 112, 0.08);
+}
+.flash-info {
+  border-color: rgba(0, 191, 220, 0.45);
+  color: #a9ecf5;
+  background: var(--cyan-soft);
+}
+
+/* ---------- Экран логина ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 34px 30px;
+  box-shadow: var(--shadow);
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.auth-title {
+  margin: 18px 0 2px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.auth-hint {
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.field input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+/* ---------- Адаптив ---------- */
+@media (max-width: 640px) {
+  .app-header {
+    padding: 12px 16px;
+  }
+  .brand-sub {
+    display: none;
+  }
+  .user-box {
+    display: none;
+  }
+  .app-main {
+    padding: 24px 16px 48px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+}
