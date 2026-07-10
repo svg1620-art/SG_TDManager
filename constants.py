@@ -92,3 +92,14 @@ WORK_TYPE_LABELS = {
 # --- Источник месячного отчёта ---
 REPORT_SOURCE_AUTO = "auto"
 REPORT_SOURCE_MANUAL = "manual"
+
+# --- Типы уведомлений (колокольчик) ---
+NOTIF_NEW_TASK = "new_task"
+NOTIF_ESTIMATE_SET = "estimate_set"
+NOTIF_ESTIMATE_APPROVED = "estimate_approved"
+NOTIF_TASK_DONE = "task_done"
+NOTIF_TASK_RETURNED = "task_returned"
+NOTIF_TASK_ACCEPTED = "task_accepted"
+NOTIF_CLARIFICATION = "clarification"
+NOTIF_TASK_REJECTED = "task_rejected"
+NOTIF_NEW_COMMENT = "new_comment"

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}{{ task.title }} — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs">
+    <a href="{{ url_for('tasks.list_tasks') }}">Задачи</a>
+    <span class="dim">/</span>
+    <span>#{{ task.id }}</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">{{ task.title }}</h1>
+      <p class="page-subtitle">
+        <span class="status-badge status-{{ task.status }}">{{ STATUS_LABELS.get(task.status) }}</span>
+        <span class="prio prio-{{ task.priority }}">{{ PRIORITY_LABELS.get(task.priority) }}</span>
+        <span class="dim">·</span> {{ WORK_TYPE_LABELS.get(task.work_type) }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Описание и метаданные -->
+  <div class="card">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Клиент</div>
+        <div class="meta-value">{{ task.client.name if task.client else '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Постановщик</div>
+        <div class="meta-value">{{ author.full_name if author else '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Оценка, ч</div>
+        <div class="meta-value num">{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Факт, ч <span class="dim">(Стадия 4)</span></div>
+        <div class="meta-value num">{{ '%.2f'|format(task.actual_hours) if task.actual_hours else '0.00' }}</div>
+      </div>
+    </div>
+    {% if task.description %}
+    <div class="notes-block">
+      <div class="meta-label">Описание</div>
+      <p>{{ task.description }}</p>
+    </div>
+    {% endif %}
+    {% if task.return_reason %}
+    <div class="notes-block">
+      <div class="meta-label">Причина возврата / отклонения</div>
+      <p>{{ task.return_reason }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Действия по матрице переходов -->
+  {% if actions or is_staff %}
+  <div class="card">
+    <h2 class="card-title">Действия</h2>
+
+    {% if limit_warning %}
+    <div class="warn-box">⚠️ {{ limit_warning }} Подтвердить всё равно можно.</div>
+    {% endif %}
+
+    <div class="action-row">
+      {% for a in actions %}
+        {% if a.requires is none %}
+        <form method="post" action="{{ url_for('tasks.transition', task_id=task.id) }}">
+          <input type="hidden" name="action" value="{{ a.key }}">
+          <button type="submit" class="btn btn-{{ a.kind }}">{{ a.label }}</button>
+        </form>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Действия с обязательным вводом -->
+    {% for a in actions %}
+      {% if a.requires is not none %}
+      <details class="inline-form">
+        <summary class="btn btn-{{ a.kind }}">{{ a.label }}</summary>
+        <form method="post" action="{{ url_for('tasks.transition', task_id=task.id) }}" class="mt-16">
+          <input type="hidden" name="action" value="{{ a.key }}">
+          {% if a.requires == 'estimate' %}
+          <div class="field">
+            <label>Оценка часов *</label>
+            <input type="text" inputmode="decimal" name="estimated_hours" class="mono" required
+                   value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
+          </div>
+          {% elif a.requires == 'estimate_opt' %}
+          <div class="field">
+            <label>Скорректировать оценку <span class="dim">(необязательно)</span></label>
+            <input type="text" inputmode="decimal" name="estimated_hours" class="mono"
+                   value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
+          </div>
+          {% elif a.requires == 'comment' %}
+          <div class="field">
+            <label>{{ 'Вопрос / что уточнить' if a.key == 'request_clarification' else 'Причина возврата' }} *</label>
+            <textarea name="comment" rows="3" required></textarea>
+          </div>
+          {% elif a.requires == 'reason' %}
+          <div class="field">
+            <label>Причина отклонения *</label>
+            <textarea name="reason" rows="3" required></textarea>
+          </div>
+          {% endif %}
+          <div class="form-actions">
+            <button type="submit" class="btn btn-{{ a.kind }}">{{ a.label }}</button>
+          </div>
+        </form>
+      </details>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Правка оценки вне пайплайна (методолог/админ, любой статус) -->
+    {% if is_staff %}
+    <details class="inline-form">
+      <summary class="btn btn-ghost">Изменить оценку</summary>
+      <form method="post" action="{{ url_for('tasks.edit_estimate', task_id=task.id) }}" class="mt-16">
+        <div class="field">
+          <label>Оценка часов</label>
+          <input type="text" inputmode="decimal" name="estimated_hours" class="mono"
+                 value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Сохранить оценку</button>
+        </div>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Комментарии -->
+  <div class="card">
+    <h2 class="card-title">Комментарии</h2>
+    {% if comments %}
+    <ul class="comments">
+      {% for c in comments %}
+      {% set ca = comment_authors.get(c.author_id) %}
+      <li class="comment">
+        <div class="comment-head">
+          <span class="comment-author">{{ ca.full_name if ca else '—' }}</span>
+          {% if ca %}<span class="comment-role">{{ ROLE_LABELS.get(ca.role) }}</span>{% endif %}
+          <time class="mono dim">{{ c.created_at.strftime('%d.%m.%Y %H:%M') }}</time>
+        </div>
+        <div class="comment-body">{{ c.body }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-inline">Комментариев ещё нет.</p>
+    {% endif %}
+
+    {% if can_comment %}
+    <form method="post" action="{{ url_for('tasks.add_comment', task_id=task.id) }}" class="comment-form">
+      <div class="field">
+        <textarea name="body" rows="3" placeholder="Написать комментарий…" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Отправить</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+{% endblock %}

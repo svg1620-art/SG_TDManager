@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Новая задача — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs">
+    <a href="{{ url_for('tasks.list_tasks') }}">Задачи</a>
+    <span class="dim">/</span>
+    <span>Новая задача</span>
+  </div>
+
+  <h1 class="page-title">Новая задача</h1>
+  <p class="page-subtitle">Опишите задачу — методолог оценит её в часах</p>
+
+  <div class="card form-card">
+    <form method="post" action="{{ url_for('tasks.new_task') }}">
+      <div class="field">
+        <label for="title">Название *</label>
+        <input type="text" id="title" name="title" required autofocus>
+      </div>
+
+      <div class="field">
+        <label for="description">Описание *</label>
+        <textarea id="description" name="description" rows="5" required></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="priority">Приоритет</label>
+          <select id="priority" name="priority">
+            {% for p in priorities %}
+            <option value="{{ p }}" {% if p == 'medium' %}selected{% endif %}>{{ PRIORITY_LABELS.get(p) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="work_type">Тип работ</label>
+          <select id="work_type" name="work_type">
+            {% for w in work_types %}
+            <option value="{{ w }}">{{ WORK_TYPE_LABELS.get(w) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{{ url_for('tasks.list_tasks') }}">Отмена</a>
+        <button type="submit" class="btn btn-primary">Создать задачу</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

@@ -87,12 +87,16 @@ def create_app(config_class=Config) -> Flask:
     from blueprints.client import client_bp
     from blueprints.clients import clients_bp
     from blueprints.methodologist import methodologist_bp
+    from blueprints.notifications import notifications_bp
+    from blueprints.tasks import tasks_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(methodologist_bp)
     app.register_blueprint(client_bp)
     app.register_blueprint(clients_bp)
+    app.register_blueprint(tasks_bp)
+    app.register_blueprint(notifications_bp)
 
     # Справочники доступны во всех шаблонах (для меток статусов/приоритетов/типов).
     @app.context_processor
@@ -102,6 +106,20 @@ def create_app(config_class=Config) -> Flask:
             "PRIORITY_LABELS": PRIORITY_LABELS,
             "WORK_TYPE_LABELS": WORK_TYPE_LABELS,
             "ROLE_LABELS": ROLE_LABELS,
+        }
+
+    # Данные колокольчика для шапки (только для авторизованных).
+    @app.context_processor
+    def inject_notifications():
+        from flask_login import current_user
+
+        if not current_user.is_authenticated:
+            return {}
+        from services.notifications import recent, unread_count
+
+        return {
+            "nav_unread_count": unread_count(current_user.id),
+            "nav_notifications": recent(current_user.id, limit=10),
         }
 
     # Инициализация БД и сид админа.
