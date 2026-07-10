@@ -15,6 +15,7 @@
         <a class="toggle-btn active" href="{{ url_for('tasks.board', **filters) }}">Доска</a>
         <a class="toggle-btn" href="{{ url_for('tasks.list_tasks', **filters) }}">Список</a>
       </div>
+      <a class="btn btn-primary" href="{{ url_for('tasks.new_task') }}">+ Создать задачу</a>
     </div>
   </div>
 

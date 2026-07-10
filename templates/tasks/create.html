@@ -13,6 +13,18 @@
 
   <div class="card form-card">
     <form method="post" action="{{ url_for('tasks.new_task') }}">
+      {% if is_staff %}
+      <div class="field">
+        <label for="client_id">Клиент *</label>
+        <select id="client_id" name="client_id" required>
+          <option value="">— выберите клиента —</option>
+          {% for c in client_options %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
       <div class="field">
         <label for="title">Название *</label>
         <input type="text" id="title" name="title" required autofocus>

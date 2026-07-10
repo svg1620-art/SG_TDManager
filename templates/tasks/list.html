@@ -18,9 +18,7 @@
         <a class="toggle-btn active" href="{{ url_for('tasks.list_tasks', **filters) }}">Список</a>
       </div>
       {% endif %}
-      {% if current_user.is_client %}
       <a class="btn btn-primary" href="{{ url_for('tasks.new_task') }}">+ Создать задачу</a>
-      {% endif %}
     </div>
   </div>
 

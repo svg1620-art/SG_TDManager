@@ -263,12 +263,25 @@ def board():
 
 
 # --------------------------------------------------------------------------- #
-# Создание задачи (клиент)
+# Создание задачи (клиент, методолог, админ)
 # --------------------------------------------------------------------------- #
+def _notify_org_clients(org, ntype, body, task_id):
+    """Уведомить активных сотрудников организации-клиента (для задач от staff)."""
+    for emp in User.query.filter_by(
+        client_id=org.id, role=ROLE_CLIENT, is_active=True
+    ).all():
+        notify(emp.id, ntype, body, task_id=task_id)
+
+
 @tasks_bp.route("/new", methods=["GET", "POST"])
-@role_required(ROLE_CLIENT)
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST, ROLE_CLIENT)
 def new_task():
-    if current_user.client_id is None:
+    is_staff = current_user.is_admin or current_user.is_methodologist
+
+    # Клиенты для выбора (только staff): методолог — свои, админ — все активные.
+    client_options = _staff_client_options() if is_staff else []
+
+    if current_user.is_client and current_user.client_id is None:
         abort(403)
 
     if request.method == "POST":
@@ -277,13 +290,27 @@ def new_task():
         priority = request.form.get("priority") or PRIORITY_MEDIUM
         work_type = request.form.get("work_type") or WORK_OTHER
 
+        # Определяем клиента задачи.
+        if current_user.is_client:
+            client_id = current_user.client_id
+        else:
+            client_id = request.form.get("client_id", type=int)
+
+        error = None
         if not title or not description:
-            flash("Название и описание обязательны.", "error")
+            error = "Название и описание обязательны."
         elif priority not in PRIORITIES or work_type not in WORK_TYPES:
-            flash("Некорректный приоритет или тип работ.", "error")
+            error = "Некорректный приоритет или тип работ."
+        elif is_staff:
+            # Проверка, что выбранный клиент в области видимости staff.
+            if not client_id or client_id not in {c.id for c in client_options}:
+                error = "Выберите клиента из списка."
+
+        if error:
+            flash(error, "error")
         else:
             task = Task(
-                client_id=current_user.client_id,
+                client_id=client_id,
                 created_by=current_user.id,
                 title=title,
                 description=description,
@@ -294,18 +321,35 @@ def new_task():
             db.session.add(task)
             db.session.commit()
 
-            org = db.session.get(ClientOrg, current_user.client_id)
-            if org and org.methodologist_id:
-                notify(
-                    org.methodologist_id,
-                    NOTIF_NEW_TASK,
-                    f"Новая задача от {org.name} / {current_user.full_name}: «{title}».",
-                    task_id=task.id,
-                )
+            org = db.session.get(ClientOrg, client_id)
+            if current_user.is_client:
+                # Клиент создал — уведомляем методолога.
+                if org and org.methodologist_id:
+                    notify(
+                        org.methodologist_id,
+                        NOTIF_NEW_TASK,
+                        f"Новая задача от {org.name} / {current_user.full_name}: «{title}».",
+                        task_id=task.id,
+                    )
+            else:
+                # Staff создал — уведомляем сотрудников организации.
+                if org:
+                    _notify_org_clients(
+                        org,
+                        NOTIF_NEW_TASK,
+                        f"Методолог создал задачу «{title}» для {org.name}.",
+                        task.id,
+                    )
             flash("Задача создана.", "info")
             return redirect(url_for("tasks.task_detail", task_id=task.id))
 
-    return render_template("tasks/create.html", priorities=PRIORITIES, work_types=WORK_TYPES)
+    return render_template(
+        "tasks/create.html",
+        priorities=PRIORITIES,
+        work_types=WORK_TYPES,
+        is_staff=is_staff,
+        client_options=client_options,
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -397,9 +441,12 @@ def transition(task_id):
         )
 
     def _notify_client(ntype, body):
-        # Уведомляем постановщика задачи (сотрудника клиента).
-        if task.created_by:
-            notify(task.created_by, ntype, body, task_id=task.id)
+        # Постановщик-клиент → уведомляем его; если задачу завёл staff → сотрудников орг.
+        author = db.session.get(User, task.created_by) if task.created_by else None
+        if author and author.is_client:
+            notify(author.id, ntype, body, task_id=task.id)
+        elif task.client:
+            _notify_org_clients(task.client, ntype, body, task.id)
 
     def _notify_staff(ntype, body):
         org = task.client
