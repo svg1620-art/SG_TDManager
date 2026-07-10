@@ -1026,3 +1026,302 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===================== Стадия 5: дашборды и доска ===================== */
+
+/* Навигация по месяцам */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.month-label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Переключатель вид/список */
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.toggle-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+}
+.toggle-btn:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+.toggle-btn.active {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* ---------- Дашборд клиента: сетки ---------- */
+.dash-top {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.dash-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.dash-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+/* Гейдж */
+.gauge-card .card-title { margin-bottom: 10px; }
+.gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+.gauge-canvas-box {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  flex: none;
+}
+.gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.gauge-big {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+}
+.gauge-sub {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.gauge-legend {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.gl-row b { font-size: 16px; }
+
+/* KPI */
+.kpi-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px 22px;
+}
+.kpi-num {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+.kpi-label {
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+/* Донат-контейнер */
+.donut-box {
+  position: relative;
+  height: 260px;
+}
+
+/* ---------- Баланс по клиентам (прогресс-бары) ---------- */
+.balance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.balance-row {
+  display: block;
+  color: var(--text);
+}
+.balance-row:hover .balance-name { color: var(--cyan); }
+.balance-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+.balance-name { font-weight: 700; }
+.warn-text { color: var(--warning); }
+.progress {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+}
+.progress-fill.warn { background: var(--warning); }
+.progress-fill.over { background: var(--danger); }
+
+/* ---------- Фильтры ---------- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.filter-select {
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  cursor: pointer;
+}
+.filter-select:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+/* ---------- Доска ---------- */
+.board {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  align-items: flex-start;
+}
+.board-col {
+  flex: 0 0 260px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
+}
+.board-col-rejected { opacity: 0.82; }
+.board-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+.board-count {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.board-col-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.board-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.board-card-title {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.board-card-title:hover { color: var(--cyan); }
+.board-card-meta { font-size: 12px; margin-bottom: 8px; }
+.board-card-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tag-mini { font-size: 11px; }
+.board-card-hours {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.board-card-author {
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.board-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.board-card-actions .action-row { gap: 6px; }
+.board-card-actions .inline-form {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+.board-empty {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 13px;
+}
+
+/* Компактные кнопки на доске */
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .dash-top { grid-template-columns: 1fr; }
+  .dash-charts { grid-template-columns: 1fr; }
+  .dash-summary { grid-template-columns: repeat(2, 1fr); }
+  .kpi-col { flex-direction: row; }
+  .kpi-col .kpi-card { flex: 1; }
+}
+@media (max-width: 640px) {
+  .board-col { flex-basis: 82vw; }
+  .dash-summary { grid-template-columns: 1fr 1fr; }
+  .kpi-col { flex-direction: column; }
+}

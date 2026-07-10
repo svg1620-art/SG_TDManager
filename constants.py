@@ -93,6 +93,30 @@ WORK_TYPE_LABELS = {
 REPORT_SOURCE_AUTO = "auto"
 REPORT_SOURCE_MANUAL = "manual"
 
+# --- Цвета статусов для графиков (согласованы с бейджами карточек) ---
+STATUS_COLORS = {
+    STATUS_NEW: "#6b7280",
+    STATUS_ESTIMATE_PENDING: "#9aa0ac",
+    STATUS_APPROVED: "#4a7fe0",
+    STATUS_IN_PROGRESS: "#1467f5",
+    STATUS_CLARIFICATION: "#f5b014",
+    STATUS_DONE: "#00bfdc",
+    STATUS_ACCEPTED: "#35d0a0",
+    STATUS_REJECTED: "#7a4a52",
+}
+
+# Палитра для сегментов (типы работ, клиенты) — фирменные и производные оттенки.
+CHART_PALETTE = [
+    "#1467f5",
+    "#00bfdc",
+    "#4a7fe0",
+    "#2fd0c0",
+    "#7a6cf0",
+    "#35d0a0",
+    "#9aa0ac",
+    "#f5b014",
+]
+
 # --- Типы уведомлений (колокольчик) ---
 NOTIF_NEW_TASK = "new_task"
 NOTIF_ESTIMATE_SET = "estimate_set"

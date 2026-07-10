@@ -29,11 +29,18 @@
       {% if current_user.is_admin or current_user.is_methodologist %}
       <a class="nav-link{% if request.blueprint in ('admin', 'methodologist') %} active{% endif %}"
          href="{{ url_for('auth.index') }}">Дашборд</a>
+      <a class="nav-link{% if request.endpoint == 'tasks.board' %} active{% endif %}"
+         href="{{ url_for('tasks.board') }}">Доска</a>
+      <a class="nav-link{% if request.endpoint == 'tasks.list_tasks' %} active{% endif %}"
+         href="{{ url_for('tasks.list_tasks') }}">Задачи</a>
       <a class="nav-link{% if request.blueprint == 'clients' %} active{% endif %}"
          href="{{ url_for('clients.list_clients') }}">Клиенты</a>
-      {% endif %}
+      {% else %}
+      <a class="nav-link{% if request.blueprint == 'client' %} active{% endif %}"
+         href="{{ url_for('auth.index') }}">Дашборд</a>
       <a class="nav-link{% if request.blueprint == 'tasks' %} active{% endif %}"
          href="{{ url_for('tasks.list_tasks') }}">Задачи</a>
+      {% endif %}
     </nav>
 
     <div class="header-right">

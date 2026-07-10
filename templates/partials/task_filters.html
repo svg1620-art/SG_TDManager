@@ -1,0 +1,38 @@
+{# Панель фильтров задач (общая для доски и списка). Состояние — в query-параметрах. #}
+<form method="get" action="{{ request.path }}" class="filters">
+  <select name="client_id" class="filter-select" onchange="this.form.submit()">
+    <option value="">Все клиенты</option>
+    {% for c in client_options %}
+    <option value="{{ c.id }}" {% if filters.client_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+    {% endfor %}
+  </select>
+
+  {% if statuses is defined %}
+  <select name="status" class="filter-select" onchange="this.form.submit()">
+    <option value="">Все статусы</option>
+    {% for s in statuses %}
+    <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ STATUS_LABELS.get(s) }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+
+  <select name="priority" class="filter-select" onchange="this.form.submit()">
+    <option value="">Любой приоритет</option>
+    {% for p in priorities %}
+    <option value="{{ p }}" {% if filters.priority == p %}selected{% endif %}>{{ PRIORITY_LABELS.get(p) }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="work_type" class="filter-select" onchange="this.form.submit()">
+    <option value="">Любой тип</option>
+    {% for w in work_types %}
+    <option value="{{ w }}" {% if filters.work_type == w %}selected{% endif %}>{{ WORK_TYPE_LABELS.get(w) }}</option>
+    {% endfor %}
+  </select>
+
+  <noscript><button type="submit" class="btn btn-ghost">Применить</button></noscript>
+
+  {% if filters.client_id or filters.status or filters.priority or filters.work_type %}
+  <a class="btn-link" href="{{ request.path }}">Сбросить фильтры</a>
+  {% endif %}
+</form>

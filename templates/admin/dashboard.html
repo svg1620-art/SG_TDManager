@@ -2,30 +2,21 @@
 {% block title %}Дашборд администратора — SG · T&D manager{% endblock %}
 
 {% block content %}
-  <h1 class="page-title">SG_T&amp;D_manager</h1>
-  <p class="page-subtitle">Кабинет администратора</p>
-
-  <div class="card">
-    <div class="meta-grid">
-      <div class="meta-item">
-        <div class="meta-label">Пользователь</div>
-        <div class="meta-value">{{ current_user.full_name }}</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Роль</div>
-        <div class="meta-value"><span class="role-pill">{{ ROLE_LABELS.get(current_user.role) }}</span></div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Логин</div>
-        <div class="meta-value mono">{{ current_user.login }}</div>
-      </div>
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Дашборд нагрузки</h1>
+      <p class="page-subtitle">Все клиенты · <span class="mono">{{ '%02d'|format(month) }}.{{ year }}</span></p>
+    </div>
+    <div class="page-head-actions">
+      <a class="btn btn-ghost" href="{{ url_for('tasks.list_tasks') }}">Список задач</a>
+      <a class="btn btn-primary" href="{{ url_for('tasks.board') }}">Доска задач</a>
     </div>
   </div>
 
-  <div class="card">
-    <div class="stub">
-      <span class="stub-badge">Скоро</span>
-      <span>Обзор методологов, переназначение клиентов, глобальные дашборды и фрод-монитор появятся в следующих стадиях.</span>
-    </div>
-  </div>
+  {% include "partials/workload.html" %}
+{% endblock %}
+
+{% block head_extra %}
+<script>window.__work = { byClient: {{ by_client_chart | tojson }} };</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
 {% endblock %}

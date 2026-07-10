@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "partials/task_actions.html" import render_actions %}
+{% block title %}Доска задач — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Доска задач</h1>
+      <p class="page-subtitle">
+        {% if current_user.is_admin %}Все клиенты{% else %}Ваши клиенты{% endif %} · перемещение по кнопкам действий
+      </p>
+    </div>
+    <div class="page-head-actions">
+      <div class="view-toggle">
+        <a class="toggle-btn active" href="{{ url_for('tasks.board', **filters) }}">Доска</a>
+        <a class="toggle-btn" href="{{ url_for('tasks.list_tasks', **filters) }}">Список</a>
+      </div>
+    </div>
+  </div>
+
+  {% include "partials/task_filters.html" %}
+
+  <div class="board">
+    {% for status in columns %}
+    {% set items = grouped.get(status, []) %}
+    <div class="board-col{% if status == 'rejected' %} board-col-rejected{% endif %}">
+      <div class="board-col-head">
+        <span class="status-badge status-{{ status }}">{{ STATUS_LABELS.get(status) }}</span>
+        <span class="board-count mono">{{ items|length }}</span>
+      </div>
+      <div class="board-col-body">
+        {% for t in items %}
+        <div class="board-card">
+          <a class="board-card-title" href="{{ url_for('tasks.task_detail', task_id=t.id) }}">{{ t.title }}</a>
+          <div class="board-card-meta">
+            <span class="dim">{{ t.client.name if t.client else '—' }}</span>
+          </div>
+          <div class="board-card-tags">
+            <span class="prio prio-{{ t.priority }}">{{ PRIORITY_LABELS.get(t.priority) }}</span>
+            <span class="tag-mini dim">{{ WORK_TYPE_LABELS.get(t.work_type) }}</span>
+          </div>
+          <div class="board-card-hours mono">
+            <span title="Оценка">оц. {{ '%.1f'|format(t.estimated_hours) if t.estimated_hours is not none else '—' }}</span>
+            <span title="Факт">факт {{ '%.1f'|format(t.actual_hours) if t.actual_hours else '0.0' }}</span>
+          </div>
+          {% if authors.get(t.created_by) %}
+          <div class="board-card-author dim">{{ authors.get(t.created_by) }}</div>
+          {% endif %}
+          {% set acts = actions_by_task.get(t.id) %}
+          {% if acts %}
+          <div class="board-card-actions">
+            {{ render_actions(t, acts, next_url=next_url, compact=True) }}
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="board-empty dim">—</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endblock %}

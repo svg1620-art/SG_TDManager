@@ -11,12 +11,20 @@
         {% else %}Все задачи{% endif %}
       </p>
     </div>
-    {% if current_user.is_client %}
     <div class="page-head-actions">
+      {% if is_staff %}
+      <div class="view-toggle">
+        <a class="toggle-btn" href="{{ url_for('tasks.board', **filters) }}">Доска</a>
+        <a class="toggle-btn active" href="{{ url_for('tasks.list_tasks', **filters) }}">Список</a>
+      </div>
+      {% endif %}
+      {% if current_user.is_client %}
       <a class="btn btn-primary" href="{{ url_for('tasks.new_task') }}">+ Создать задачу</a>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
+
+  {% if is_staff %}{% include "partials/task_filters.html" %}{% endif %}
 
   {% if month_summary %}
   <div class="limit-strip">

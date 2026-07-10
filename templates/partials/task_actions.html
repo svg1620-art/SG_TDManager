@@ -1,0 +1,55 @@
+{# Рендер действий по матрице переходов (Стадия 3). Единый источник для карточки и доски.
+   Параметры: task, actions, next_url (опц.), compact (опц., для карточек доски). #}
+{% macro render_actions(task, actions, next_url=None, compact=False) %}
+  {% set btn_extra = ' btn-sm' if compact else '' %}
+  {% set no_input = actions | selectattr('requires', 'none') | list %}
+  {% set with_input = actions | rejectattr('requires', 'none') | list %}
+
+  {% if no_input %}
+  <div class="action-row">
+    {% for a in no_input %}
+    <form method="post" action="{{ url_for('tasks.transition', task_id=task.id) }}">
+      <input type="hidden" name="action" value="{{ a.key }}">
+      {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+      <button type="submit" class="btn btn-{{ a.kind }}{{ btn_extra }}">{{ a.label }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% for a in with_input %}
+  <details class="inline-form{% if compact %} compact{% endif %}">
+    <summary class="btn btn-{{ a.kind }}{{ btn_extra }}">{{ a.label }}</summary>
+    <form method="post" action="{{ url_for('tasks.transition', task_id=task.id) }}" class="mt-16">
+      <input type="hidden" name="action" value="{{ a.key }}">
+      {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+      {% if a.requires == 'estimate' %}
+      <div class="field">
+        <label>Оценка часов *</label>
+        <input type="text" inputmode="decimal" name="estimated_hours" class="mono" required
+               value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
+      </div>
+      {% elif a.requires == 'estimate_opt' %}
+      <div class="field">
+        <label>Скорректировать оценку <span class="dim">(необязательно)</span></label>
+        <input type="text" inputmode="decimal" name="estimated_hours" class="mono"
+               value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
+      </div>
+      {% elif a.requires == 'comment' %}
+      <div class="field">
+        <label>{{ 'Вопрос / что уточнить' if a.key == 'request_clarification' else 'Причина возврата' }} *</label>
+        <textarea name="comment" rows="3" required></textarea>
+      </div>
+      {% elif a.requires == 'reason' %}
+      <div class="field">
+        <label>Причина отклонения *</label>
+        <textarea name="reason" rows="3" required></textarea>
+      </div>
+      {% endif %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-{{ a.kind }}">{{ a.label }}</button>
+      </div>
+    </form>
+  </details>
+  {% endfor %}
+{% endmacro %}

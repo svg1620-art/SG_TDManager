@@ -1,0 +1,56 @@
+{# Дашборд нагрузки: сводные числа, баланс по клиентам, распределение часов.
+   Параметры: work (workload_summary), year, month. #}
+
+<div class="dash-summary">
+  <div class="card kpi-card">
+    <div class="kpi-num num">{{ '%.1f'|format(work.total_effective) }}</div>
+    <div class="kpi-label dim">Суммарный лимит, ч</div>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-num num accent">{{ '%.1f'|format(work.total_consumed) }}</div>
+    <div class="kpi-label dim">Суммарный расход, ч</div>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-num num {{ 'neg' if work.total_remaining < 0 else 'pos' }}">{{ '%.1f'|format(work.total_remaining) }}</div>
+    <div class="kpi-label dim">Остаток, ч</div>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-num num {{ 'neg' if work.minus_count else '' }}">{{ work.minus_count }}</div>
+    <div class="kpi-label dim">Клиентов в минусе</div>
+  </div>
+</div>
+
+<div class="dash-charts">
+  <div class="card">
+    <h2 class="card-title">Баланс по клиентам <span class="dim">({{ '%02d'|format(month) }}.{{ year }})</span></h2>
+    {% if work.balances %}
+    <div class="balance-list">
+      {% for b in work.balances %}
+      <a class="balance-row" href="{{ url_for('clients.client_detail', client_id=b.id) }}">
+        <div class="balance-head">
+          <span class="balance-name">{{ b.name }}</span>
+          <span class="num {{ 'neg' if b.over else ('warn-text' if b.warn else 'dim') }}">
+            {{ '%.1f'|format(b.consumed) }} / {{ '%.1f'|format(b.effective) }} ч
+          </span>
+        </div>
+        <div class="progress">
+          <div class="progress-fill {{ 'over' if b.over else ('warn' if b.warn else '') }}"
+               style="width: {{ 100 if b.pct > 100 else b.pct }}%"></div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-inline">Нет активных клиентов.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Распределение часов по клиентам <span class="dim">({{ '%02d'|format(month) }}.{{ year }})</span></h2>
+    {% if work.hours_by_client %}
+    <div class="donut-box"><canvas id="clientHoursChart"></canvas></div>
+    {% else %}
+    <p class="empty-inline">Пока нет списанных часов за этот месяц.</p>
+    {% endif %}
+  </div>
+</div>

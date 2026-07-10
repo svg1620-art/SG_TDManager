@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/task_actions.html" import render_actions %}
 {% block title %}{{ task.title }} — SG · T&D manager{% endblock %}
 
 {% block content %}
@@ -62,54 +63,7 @@
     <div class="warn-box">⚠️ {{ limit_warning }} Подтвердить всё равно можно.</div>
     {% endif %}
 
-    <div class="action-row">
-      {% for a in actions %}
-        {% if a.requires is none %}
-        <form method="post" action="{{ url_for('tasks.transition', task_id=task.id) }}">
-          <input type="hidden" name="action" value="{{ a.key }}">
-          <button type="submit" class="btn btn-{{ a.kind }}">{{ a.label }}</button>
-        </form>
-        {% endif %}
-      {% endfor %}
-    </div>
-
-    <!-- Действия с обязательным вводом -->
-    {% for a in actions %}
-      {% if a.requires is not none %}
-      <details class="inline-form">
-        <summary class="btn btn-{{ a.kind }}">{{ a.label }}</summary>
-        <form method="post" action="{{ url_for('tasks.transition', task_id=task.id) }}" class="mt-16">
-          <input type="hidden" name="action" value="{{ a.key }}">
-          {% if a.requires == 'estimate' %}
-          <div class="field">
-            <label>Оценка часов *</label>
-            <input type="text" inputmode="decimal" name="estimated_hours" class="mono" required
-                   value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
-          </div>
-          {% elif a.requires == 'estimate_opt' %}
-          <div class="field">
-            <label>Скорректировать оценку <span class="dim">(необязательно)</span></label>
-            <input type="text" inputmode="decimal" name="estimated_hours" class="mono"
-                   value="{{ '%.2f'|format(task.estimated_hours) if task.estimated_hours is not none else '' }}">
-          </div>
-          {% elif a.requires == 'comment' %}
-          <div class="field">
-            <label>{{ 'Вопрос / что уточнить' if a.key == 'request_clarification' else 'Причина возврата' }} *</label>
-            <textarea name="comment" rows="3" required></textarea>
-          </div>
-          {% elif a.requires == 'reason' %}
-          <div class="field">
-            <label>Причина отклонения *</label>
-            <textarea name="reason" rows="3" required></textarea>
-          </div>
-          {% endif %}
-          <div class="form-actions">
-            <button type="submit" class="btn btn-{{ a.kind }}">{{ a.label }}</button>
-          </div>
-        </form>
-      </details>
-      {% endif %}
-    {% endfor %}
+    {{ render_actions(task, actions) }}
 
     <!-- Правка оценки вне пайплайна (методолог/админ, любой статус) -->
     {% if is_staff %}

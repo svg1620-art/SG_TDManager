@@ -23,10 +23,14 @@ from constants import (
     ROLE_CLIENT,
     ROLE_METHODOLOGIST,
     STATUS_ACCEPTED,
+    STATUS_APPROVED,
     STATUS_CLARIFICATION,
     STATUS_DONE,
     STATUS_ESTIMATE_PENDING,
     STATUS_IN_PROGRESS,
+    STATUS_NEW,
+    STATUS_REJECTED,
+    TASK_STATUSES,
     WORK_OTHER,
     WORK_TYPES,
 )
@@ -131,28 +135,60 @@ def _maybe_notify_minus(task, year, month, remaining_before):
 # --------------------------------------------------------------------------- #
 # Список задач (роль-зависимый)
 # --------------------------------------------------------------------------- #
-@tasks_bp.route("/")
-@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST, ROLE_CLIENT)
-def list_tasks():
-    query = Task.query
+def _staff_client_options():
+    """Клиенты для фильтра: свои — методологу, все — админу."""
+    q = ClientOrg.query
+    if current_user.is_methodologist:
+        q = q.filter_by(methodologist_id=current_user.id)
+    return q.order_by(ClientOrg.name).all()
 
+
+def _scoped_task_query():
+    """Базовая выборка задач по роли (клиент/методолог/админ)."""
+    query = Task.query
     if current_user.is_client:
         query = query.filter(Task.client_id == current_user.client_id)
     elif current_user.is_methodologist:
         query = query.join(ClientOrg, Task.client_id == ClientOrg.id).filter(
             ClientOrg.methodologist_id == current_user.id
         )
-    # admin — все задачи
+    return query
 
-    tasks = query.order_by(Task.updated_at.desc()).all()
 
-    # Имена постановщиков и клиентов для строк.
+def _apply_filters(query):
+    """Наложить фильтры из query-параметров. Возвращает (query, active_filters)."""
+    filters = {
+        "client_id": request.args.get("client_id", type=int),
+        "status": request.args.get("status") or None,
+        "priority": request.args.get("priority") or None,
+        "work_type": request.args.get("work_type") or None,
+    }
+    if filters["client_id"]:
+        query = query.filter(Task.client_id == filters["client_id"])
+    if filters["status"] in TASK_STATUSES:
+        query = query.filter(Task.status == filters["status"])
+    if filters["priority"] in PRIORITIES:
+        query = query.filter(Task.priority == filters["priority"])
+    if filters["work_type"] in WORK_TYPES:
+        query = query.filter(Task.work_type == filters["work_type"])
+    return query, filters
+
+
+def _authors_map(tasks):
     author_ids = {t.created_by for t in tasks if t.created_by}
-    authors = {
-        u.id: u.full_name for u in User.query.filter(User.id.in_(author_ids)).all()
-    } if author_ids else {}
+    if not author_ids:
+        return {}
+    return {u.id: u.full_name for u in User.query.filter(User.id.in_(author_ids)).all()}
 
-    show_client_col = current_user.is_admin or current_user.is_methodologist
+
+@tasks_bp.route("/")
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST, ROLE_CLIENT)
+def list_tasks():
+    query, filters = _apply_filters(_scoped_task_query())
+    tasks = query.order_by(Task.updated_at.desc()).all()
+    authors = _authors_map(tasks)
+
+    is_staff = current_user.is_admin or current_user.is_methodologist
 
     # Короткая строка «Лимит / Расход / Остаток» за текущий месяц для клиента.
     month_summary = None
@@ -172,8 +208,57 @@ def list_tasks():
         "tasks/list.html",
         tasks=tasks,
         authors=authors,
-        show_client_col=show_client_col,
+        show_client_col=is_staff,
         month_summary=month_summary,
+        is_staff=is_staff,
+        filters=filters,
+        client_options=_staff_client_options() if is_staff else [],
+        priorities=PRIORITIES,
+        work_types=WORK_TYPES,
+        statuses=TASK_STATUSES,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Доска задач (методолог/админ): колонки-статусы + действия по матрице
+# --------------------------------------------------------------------------- #
+@tasks_bp.route("/board")
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def board():
+    query, filters = _apply_filters(_scoped_task_query())
+    tasks = query.order_by(Task.updated_at.desc()).all()
+    authors = _authors_map(tasks)
+
+    columns = [
+        STATUS_NEW,
+        STATUS_ESTIMATE_PENDING,
+        STATUS_APPROVED,
+        STATUS_IN_PROGRESS,
+        STATUS_CLARIFICATION,
+        STATUS_DONE,
+        STATUS_ACCEPTED,
+        STATUS_REJECTED,
+    ]
+    grouped = {s: [] for s in columns}
+    for t in tasks:
+        grouped.setdefault(t.status, []).append(t)
+
+    # Доступные действия по каждой задаче — из матрицы Стадии 3 (не дублируем правила).
+    actions_by_task = {t.id: available_actions(t, current_user) for t in tasks}
+
+    next_url = url_for("tasks.board", **{k: v for k, v in filters.items() if v})
+
+    return render_template(
+        "tasks/board.html",
+        columns=columns,
+        grouped=grouped,
+        authors=authors,
+        actions_by_task=actions_by_task,
+        next_url=next_url,
+        filters=filters,
+        client_options=_staff_client_options(),
+        priorities=PRIORITIES,
+        work_types=WORK_TYPES,
     )
 
 
@@ -339,7 +424,15 @@ def transition(task_id):
             abort(403)
         flash(str(exc), "error")
 
-    return redirect(url_for("tasks.task_detail", task_id=task.id))
+    return redirect(_safe_next(url_for("tasks.task_detail", task_id=task.id)))
+
+
+def _safe_next(default_url):
+    """Локальный редирект по параметру next (доска с фильтрами), иначе — default."""
+    nxt = request.form.get("next")
+    if nxt and nxt.startswith("/"):
+        return nxt
+    return default_url
 
 
 # --------------------------------------------------------------------------- #
