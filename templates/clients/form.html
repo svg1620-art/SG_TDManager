@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Редактирование клиента' if org else 'Новый клиент' }} — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs">
+    <a href="{{ url_for('clients.list_clients') }}">Клиенты</a>
+    <span class="dim">/</span>
+    <span>{{ org.name if org else 'Новый клиент' }}</span>
+  </div>
+
+  <h1 class="page-title">{{ 'Редактирование клиента' if org else 'Новый клиент' }}</h1>
+  <p class="page-subtitle">Профиль организации, контракт и лимит по умолчанию</p>
+
+  <div class="card form-card">
+    <form method="post"
+          action="{{ url_for('clients.edit_client', client_id=org.id) if org else url_for('clients.new_client') }}">
+      <div class="field">
+        <label for="name">Название организации *</label>
+        <input type="text" id="name" name="name" required
+               value="{{ org.name if org else '' }}">
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="default_monthly_hours">Лимит по умолчанию, ч/мес *</label>
+          <input type="text" inputmode="decimal" id="default_monthly_hours"
+                 name="default_monthly_hours" required class="mono"
+                 value="{{ '%.2f'|format(org.default_monthly_hours) if org else '' }}">
+        </div>
+
+        <div class="field">
+          <label for="contract_months">Срок контракта</label>
+          <select id="contract_months" name="contract_months">
+            <option value="">— не задан —</option>
+            {% for m in contract_choices %}
+            <option value="{{ m }}"
+              {% if org and org.contract_months == m %}selected{% endif %}>{{ m }} мес.</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="contract_start">Начало контракта</label>
+          <input type="date" id="contract_start" name="contract_start"
+                 value="{{ org.contract_start.isoformat() if org and org.contract_start else '' }}">
+        </div>
+        <div class="field">
+          <label for="contract_end">Конец контракта <span class="dim">(авто, можно переопределить)</span></label>
+          <input type="date" id="contract_end" name="contract_end"
+                 value="{{ org.contract_end.isoformat() if org and org.contract_end else '' }}">
+        </div>
+      </div>
+
+      {% if current_user.is_admin %}
+      <div class="field">
+        <label for="methodologist_id">Методолог-владелец</label>
+        <select id="methodologist_id" name="methodologist_id">
+          <option value="">— не назначен —</option>
+          {% for m in methodologists %}
+          <option value="{{ m.id }}"
+            {% if org and org.methodologist_id == m.id %}selected{% endif %}>{{ m.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="field">
+        <label for="telegram_chat_id">Telegram chat_id <span class="dim">(для пульса, Стадия 7)</span></label>
+        <input type="text" id="telegram_chat_id" name="telegram_chat_id" class="mono"
+               value="{{ org.telegram_chat_id if org and org.telegram_chat_id else '' }}">
+      </div>
+
+      <div class="field">
+        <label for="notes">Заметки</label>
+        <textarea id="notes" name="notes" rows="3">{{ org.notes if org and org.notes else '' }}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{{ url_for('clients.client_detail', client_id=org.id) if org else url_for('clients.list_clients') }}">Отмена</a>
+        <button type="submit" class="btn btn-primary">{{ 'Сохранить' if org else 'Создать клиента' }}</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
