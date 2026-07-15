@@ -294,6 +294,18 @@ class MonthlyReport(db.Model):
         return f"<MonthlyReport client={self.client_id} {self.year}-{self.month:02d}>"
 
 
+class AppSetting(db.Model):
+    """Простое key-value хранилище настроек приложения (напр. общий чат отчёта)."""
+
+    __tablename__ = "app_settings"
+
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<AppSetting {self.key}={self.value!r}>"
+
+
 class ClientReassignment(db.Model):
     """Аудит передачи клиента между методологами (Стадия 6)."""
 

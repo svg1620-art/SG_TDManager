@@ -170,6 +170,81 @@ def reset_password(user_id):
 
 
 # --------------------------------------------------------------------------- #
+# Настройки: общий управленческий отчёт в Telegram
+# --------------------------------------------------------------------------- #
+@admin_bp.route("/settings", methods=["GET", "POST"])
+@role_required(ROLE_ADMIN)
+def settings_page():
+    from services import settings as st
+
+    if request.method == "POST":
+        enabled = "1" if request.form.get("enabled") else "0"
+        chat_id = (request.form.get("chat_id") or "").strip()
+        hour_raw = request.form.get("hour") or "19"
+        try:
+            hour = int(hour_raw)
+            if not (0 <= hour <= 23):
+                raise ValueError
+        except ValueError:
+            flash("Час должен быть числом от 0 до 23.", "error")
+            return redirect(url_for("admin.settings_page"))
+
+        st.set(st.INTERNAL_DIGEST_ENABLED, enabled)
+        st.set(st.INTERNAL_DIGEST_CHAT_ID, chat_id)
+        st.set(st.INTERNAL_DIGEST_HOUR, str(hour))
+        flash("Настройки сохранены.", "info")
+        return redirect(url_for("admin.settings_page"))
+
+    # Опционально показать список чатов из getUpdates для выбора id.
+    chats_result = None
+    if request.args.get("detect") == "1":
+        from services.telegram import get_updates
+
+        chats_result = get_updates()
+
+    return render_template(
+        "admin/settings.html",
+        enabled=st.is_internal_digest_enabled(),
+        chat_id=st.internal_digest_chat_id(),
+        hour=st.internal_digest_hour(),
+        chats_result=chats_result,
+    )
+
+
+@admin_bp.route("/settings/test", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def settings_test():
+    from services import settings as st
+    from services.telegram import send_message
+
+    chat_id = st.internal_digest_chat_id()
+    if not chat_id:
+        flash("Сначала укажите общий chat_id.", "error")
+        return redirect(url_for("admin.settings_page"))
+    ok = send_message(chat_id, "Управленческий отчёт подключён ✅")
+    flash(
+        "Тестовое сообщение отправлено." if ok else "Не удалось отправить — проверьте токен и chat_id.",
+        "info" if ok else "error",
+    )
+    return redirect(url_for("admin.settings_page"))
+
+
+@admin_bp.route("/settings/digest", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def settings_digest_now():
+    from services.pulse import run_internal_digest
+
+    result = run_internal_digest()
+    if result["ok"]:
+        flash("Управленческий отчёт отправлен.", "info")
+    elif result["reason"] == "no_chat":
+        flash("Не задан общий chat_id.", "error")
+    else:
+        flash("Не удалось отправить отчёт — проверьте токен и chat_id.", "error")
+    return redirect(url_for("admin.settings_page"))
+
+
+# --------------------------------------------------------------------------- #
 # Ручной прогон Telegram-пульса по всем клиентам
 # --------------------------------------------------------------------------- #
 @admin_bp.route("/pulse/run", methods=["POST"])

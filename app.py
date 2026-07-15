@@ -46,6 +46,29 @@ def _pulse_job(app) -> None:
         logger.info("Cron пульса: %s", stats)
 
 
+def _internal_digest_job(app) -> None:
+    """Раз в час: если настроенный час по МСК наступил и отчёт включён — отправить.
+
+    Час хранится в настройках (редактируется из UI), поэтому проверяем ежечасно,
+    а не пересоздаём cron при каждой правке.
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    with app.app_context():
+        from services import settings
+        from services.pulse import run_internal_digest
+
+        if not settings.is_internal_digest_enabled():
+            return
+        target_hour = settings.internal_digest_hour()
+        now_hour = datetime.now(ZoneInfo("Europe/Moscow")).hour
+        if now_hour != target_hour:
+            return
+        result = run_internal_digest()
+        logger.info("Cron внутреннего отчёта: %s", result)
+
+
 def _init_scheduler(app) -> None:
     """Инициализирует BackgroundScheduler и регистрирует cron-задачи.
 
@@ -88,9 +111,18 @@ def _init_scheduler(app) -> None:
         id="daily_pulse",
         replace_existing=True,
     )
+    # Ежечасная проверка отправки общего управленческого отчёта (час — из настроек).
+    _scheduler.add_job(
+        lambda: _internal_digest_job(app),
+        CronTrigger(minute=0, timezone=ZoneInfo("Europe/Moscow")),
+        id="internal_digest",
+        replace_existing=True,
+    )
     # Задача AI-отчётов (Стадия 8) добавится позже.
     _scheduler.start()
-    logger.info("APScheduler запущен (monthly_budgets, daily_pulse зарегистрированы).")
+    logger.info(
+        "APScheduler запущен (monthly_budgets, daily_pulse, internal_digest)."
+    )
 
 
 def create_app(config_class=Config) -> Flask:

@@ -42,6 +42,8 @@
          href="{{ url_for('admin.admins') }}">Админы</a>
       <a class="nav-link{% if request.endpoint and request.endpoint.startswith('admin.fraud') %} active{% endif %}"
          href="{{ url_for('admin.fraud') }}">Фрод</a>
+      <a class="nav-link{% if request.endpoint and request.endpoint.startswith('admin.settings') %} active{% endif %}"
+         href="{{ url_for('admin.settings_page') }}">Настройки</a>
       {% endif %}
       {% else %}
       <a class="nav-link{% if request.blueprint == 'client' %} active{% endif %}"

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Настройки — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Настройки</h1>
+      <p class="page-subtitle">Общий управленческий отчёт в Telegram</p>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <h2 class="card-title">Ежедневный отчёт по методологам</h2>
+    <p class="dim" style="margin-top:-8px">
+      Раз в день в общий чат уходит сводка по всем методологам: сколько задач создано,
+      закрыто, принято и сколько часов списано за день. Для контроля работы команды.
+    </p>
+
+    <form method="post" action="{{ url_for('admin.settings_page') }}">
+      <div class="field">
+        <label class="check-row">
+          <input type="checkbox" name="enabled" {% if enabled %}checked{% endif %}>
+          <span>Отправлять ежедневный отчёт</span>
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="chat_id">Общий chat_id</label>
+          <input type="text" id="chat_id" name="chat_id" class="mono" value="{{ chat_id }}" placeholder="напр. -1001234567890">
+        </div>
+        <div class="field">
+          <label for="hour">Час отправки (МСК)</label>
+          <input type="number" id="hour" name="hour" class="num" min="0" max="23" value="{{ hour }}">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+      </div>
+    </form>
+
+    <div class="tg-actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.settings_page', detect=1) }}">Определить chat_id</a>
+      <form method="post" action="{{ url_for('admin.settings_test') }}" style="display:inline">
+        <button type="submit" class="btn btn-ghost">Отправить тестовое</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.settings_digest_now') }}" style="display:inline">
+        <button type="submit" class="btn btn-primary">Отправить отчёт сейчас</button>
+      </form>
+    </div>
+
+    <p class="hint dim">
+      Как подключить: добавьте бота в ваш управленческий чат, напишите там любое сообщение,
+      затем «Определить chat_id» → выберите чат. Проверьте «Отправить тестовое».
+    </p>
+  </div>
+
+  {% if chats_result is not none %}
+  <div class="card table-card">
+    <h2 class="card-title" style="padding:0 18px">Найденные чаты</h2>
+    {% if not chats_result.ok %}
+    <p class="empty-inline" style="padding:0 18px">
+      {% if chats_result.error == 'no_token' %}Не задан TELEGRAM_BOT_TOKEN.
+      {% else %}Не удалось получить обновления от Telegram.{% endif %}
+    </p>
+    {% elif chats_result.chats %}
+    <table class="data-table">
+      <thead><tr><th>Чат</th><th>Тип</th><th class="ta-right">chat_id</th></tr></thead>
+      <tbody>
+        {% for c in chats_result.chats %}
+        <tr>
+          <td class="td-strong">{{ c.title }}</td>
+          <td class="dim">{{ c.type }}</td>
+          <td class="ta-right mono">{{ c.id }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="hint dim" style="padding:0 18px">Скопируйте нужный chat_id в поле выше и сохраните.</p>
+    {% else %}
+    <p class="empty-inline" style="padding:0 18px">
+      Чатов не найдено. Убедитесь, что бот добавлен в чат и там есть свежее сообщение,
+      а privacy mode в BotFather выключен.
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
+{% endblock %}

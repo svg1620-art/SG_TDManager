@@ -10,9 +10,14 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 
-from constants import STATUS_ACCEPTED, STATUS_CLARIFICATION, STATUS_IN_PROGRESS
+from constants import (
+    ROLE_METHODOLOGIST,
+    STATUS_ACCEPTED,
+    STATUS_CLARIFICATION,
+    STATUS_IN_PROGRESS,
+)
 from extensions import db
-from models import ClientOrg, Task, TimeEntry
+from models import ClientOrg, Task, TimeEntry, User
 from services.budgets import consumed_hours, effective_limit
 from services.telegram import escape, send_message
 
@@ -131,6 +136,111 @@ def build_digest(org, day):
             lines += ["", snippet]
 
     return "\n".join(lines)
+
+
+def _fmt_hours(x):
+    return f"{x:.1f}".rstrip("0").rstrip(".") if x == int(x) else f"{x:.2f}"
+
+
+def build_internal_digest(day):
+    """Общий управленческий отчёт за день по методологам: создано/закрыто/принято/часы.
+
+    Атрибуция задач — по владельцу клиента (client_orgs.methodologist_id),
+    часы — по исполнителю записи (time_entries.methodologist_id).
+    """
+    start_utc, end_utc = _utc_window_for_msk_day(day)
+
+    methods = (
+        User.query.filter_by(role=ROLE_METHODOLOGIST, is_active=True)
+        .order_by(User.full_name)
+        .all()
+    )
+
+    rows = []
+    tot_created = tot_closed = tot_accepted = 0
+    tot_hours = ZERO
+    for m in methods:
+        client_ids = [
+            c.id for c in ClientOrg.query.filter_by(methodologist_id=m.id).all()
+        ]
+        created = closed = accepted = 0
+        if client_ids:
+            created = Task.query.filter(
+                Task.client_id.in_(client_ids),
+                Task.created_at >= start_utc,
+                Task.created_at < end_utc,
+            ).count()
+            closed = Task.query.filter(
+                Task.client_id.in_(client_ids),
+                Task.closed_at.isnot(None),
+                Task.closed_at >= start_utc,
+                Task.closed_at < end_utc,
+            ).count()
+            accepted = Task.query.filter(
+                Task.client_id.in_(client_ids),
+                Task.accepted_at.isnot(None),
+                Task.accepted_at >= start_utc,
+                Task.accepted_at < end_utc,
+            ).count()
+
+        hours = (
+            db.session.query(func.coalesce(func.sum(TimeEntry.hours), 0))
+            .filter(
+                TimeEntry.methodologist_id == m.id, TimeEntry.work_date == day
+            )
+            .scalar()
+        )
+        hours = hours if isinstance(hours, Decimal) else Decimal(str(hours))
+
+        rows.append(
+            {
+                "name": m.full_name,
+                "created": created,
+                "closed": closed,
+                "accepted": accepted,
+                "hours": hours,
+            }
+        )
+        tot_created += created
+        tot_closed += closed
+        tot_accepted += accepted
+        tot_hours += hours
+
+    # Сортировка: сначала кто активнее (по часам, затем по закрытым).
+    rows.sort(key=lambda r: (r["hours"], r["closed"], r["created"]), reverse=True)
+
+    lines = [
+        f"<b>Управленческий отчёт</b> — {day.strftime('%d.%m.%Y')}",
+        f"Итого: 🆕 {tot_created} · ✅ {tot_closed} · 🤝 {tot_accepted} · ⏳ {_fmt_hours(tot_hours)} ч",
+        "",
+    ]
+    if rows:
+        for r in rows:
+            lines.append(
+                f"<b>{escape(r['name'])}</b>: "
+                f"🆕 {r['created']} · ✅ {r['closed']} · 🤝 {r['accepted']} · "
+                f"⏳ {_fmt_hours(r['hours'])} ч"
+            )
+    else:
+        lines.append("Активных методологов нет.")
+
+    return "\n".join(lines)
+
+
+def run_internal_digest():
+    """Отправить общий управленческий отчёт в общий чат. Возвращает статус."""
+    from services import settings
+
+    chat_id = settings.internal_digest_chat_id()
+    if not chat_id:
+        logger.info("Внутренний отчёт: общий chat_id не задан — пропуск.")
+        return {"ok": False, "reason": "no_chat"}
+
+    day = today_msk()
+    text = build_internal_digest(day)
+    ok = send_message(chat_id, text)
+    logger.info("Внутренний отчёт за %s: отправлен=%s", day, ok)
+    return {"ok": ok, "reason": "sent" if ok else "send_failed"}
 
 
 def run_pulse(client_id=None):
