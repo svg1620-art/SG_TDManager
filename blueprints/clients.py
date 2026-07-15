@@ -252,6 +252,20 @@ def _apply_client_form(org: ClientOrg, methodologists) -> ClientOrg:
     return org
 
 
+@clients_bp.route("/<int:client_id>/delete", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def delete_client_route(client_id):
+    org = db.session.get(ClientOrg, client_id)
+    if org is None:
+        abort(404)
+    name = org.name
+    from services.deletion import delete_client
+
+    delete_client(client_id)
+    flash(f"Компания «{name}» и все её данные удалены.", "info")
+    return redirect(url_for("clients.list_clients"))
+
+
 @clients_bp.route("/<int:client_id>/toggle-active", methods=["POST"])
 @role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
 def toggle_active(client_id):

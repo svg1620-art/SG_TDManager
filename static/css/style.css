@@ -1403,3 +1403,11 @@ a:hover {
 .fraud-cell a:hover {
   color: var(--cyan);
 }
+
+/* Опасная зона (удаление) */
+.danger-zone {
+  border-color: rgba(255, 84, 112, 0.35);
+}
+.danger-zone .card-title {
+  color: #ff8496;
+}

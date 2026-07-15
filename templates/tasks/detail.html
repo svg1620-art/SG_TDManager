@@ -217,4 +217,18 @@
     </form>
     {% endif %}
   </div>
+
+  <!-- Опасная зона: удаление задачи (только админ) -->
+  {% if current_user.is_admin %}
+  <div class="card danger-zone">
+    <h2 class="card-title">Удаление задачи</h2>
+    <p class="dim" style="margin-top:-8px">
+      Безвозвратно удалит задачу вместе с записями времени и комментариями. Действие необратимо.
+    </p>
+    <form method="post" action="{{ url_for('tasks.delete_task_route', task_id=task.id) }}"
+          onsubmit="return confirm('Удалить задачу «{{ task.title }}» без возможности восстановления?')">
+      <button type="submit" class="btn btn-danger">Удалить задачу навсегда</button>
+    </form>
+  </div>
+  {% endif %}
 {% endblock %}

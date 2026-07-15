@@ -483,6 +483,23 @@ def _safe_next(default_url):
 
 
 # --------------------------------------------------------------------------- #
+# Удаление задачи (только админ)
+# --------------------------------------------------------------------------- #
+@tasks_bp.route("/<int:task_id>/delete", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def delete_task_route(task_id):
+    task = db.session.get(Task, task_id)
+    if task is None:
+        abort(404)
+    title = task.title
+    from services.deletion import delete_task
+
+    delete_task(task_id)
+    flash(f"Задача «{title}» удалена.", "info")
+    return redirect(url_for("tasks.list_tasks"))
+
+
+# --------------------------------------------------------------------------- #
 # Правка оценки вне пайплайна (методолог/админ, любой статус)
 # --------------------------------------------------------------------------- #
 @tasks_bp.route("/<int:task_id>/estimate", methods=["POST"])

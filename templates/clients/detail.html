@@ -303,4 +303,20 @@
     <p class="empty-inline">Добавлений часов ещё не было.</p>
     {% endif %}
   </div>
+
+  <!-- Опасная зона: удаление компании (только админ) -->
+  {% if current_user.is_admin %}
+  <div class="card danger-zone">
+    <h2 class="card-title">Удаление компании</h2>
+    <p class="dim" style="margin-top:-8px">
+      Безвозвратно удалит компанию и <b>все связанные данные</b>: задачи, записи времени,
+      комментарии, бюджеты, историю и учётные записи сотрудников. Действие необратимо.
+      Для сохранения истории обычно достаточно перенести компанию в архив.
+    </p>
+    <form method="post" action="{{ url_for('clients.delete_client_route', client_id=org.id) }}"
+          onsubmit="return confirm('Удалить компанию «{{ org.name }}» и ВСЕ её данные без возможности восстановления?')">
+      <button type="submit" class="btn btn-danger">Удалить компанию навсегда</button>
+    </form>
+  </div>
+  {% endif %}
 {% endblock %}
