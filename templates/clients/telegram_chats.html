@@ -45,11 +45,14 @@
   {% else %}
   <div class="card">
     <p class="empty-inline">Чатов не найдено.</p>
-    <p class="hint dim">
-      Убедитесь, что бот добавлен в группу и там есть хотя бы одно свежее сообщение.
-      У бота в BotFather должен быть выключен privacy mode, либо напишите боту в группе напрямую
-      (упоминанием). Telegram отдаёт обновления недолго — напишите в группе и сразу обновите страницу.
-    </p>
+    <div class="hint dim" style="line-height:1.7">
+      Попробуйте один из способов:<br>
+      <b style="color:var(--text)">1.</b> Удалите бота из группы и добавьте заново — создаётся событие с id (сообщение не нужно), затем «Обновить».<br>
+      <b style="color:var(--text)">2.</b> Назначьте бота администратором группы, напишите там сообщение, «Обновить».<br>
+      <b style="color:var(--text)">3.</b> Отправьте в группе <code>/start@ИмяВашегоБота</code> (команды видны и при privacy mode).<br>
+      <b style="color:var(--text)">4.</b> Или добавьте в группу <code>@getidsbot</code> / <code>@RawDataBot</code> — он пришлёт Chat ID; впишите его вручную в профиле.<br>
+      <span style="color:var(--warning)">Важно:</span> privacy mode у бота в @BotFather должен быть выключен (<code>/setprivacy → Disable</code>).
+    </div>
   </div>
   {% endif %}
 

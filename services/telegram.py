@@ -66,18 +66,70 @@ def send_message(chat_id, text) -> bool:
         return False
 
 
-def get_updates():
-    """Список последних чатов, откуда бота видели (для определения chat_id).
+# Типы обновлений, из которых извлекаем chat. my_chat_member приходит при
+# добавлении/изменении статуса бота в группе — не требует текстового сообщения.
+_CHAT_CARRIERS = (
+    "message",
+    "edited_message",
+    "channel_post",
+    "edited_channel_post",
+    "my_chat_member",
+    "chat_member",
+    "callback_query",
+)
 
-    Возвращает список dict {id, title, type} без дублей. Не поллинг — разовый вызов.
+
+def _delete_webhook_if_any(token):
+    """Если на боте висит webhook, getUpdates не работает — снимаем его (pending сохраняем)."""
+    try:
+        info = requests.get(
+            API_BASE.format(token=token, method="getWebhookInfo"), timeout=TIMEOUT
+        ).json()
+        if info.get("ok") and info.get("result", {}).get("url"):
+            requests.get(
+                API_BASE.format(token=token, method="deleteWebhook"),
+                params={"drop_pending_updates": "false"},
+                timeout=TIMEOUT,
+            )
+            logger.info("Снят активный webhook, чтобы работал getUpdates.")
+    except requests.RequestException:
+        pass
+
+
+def _extract_chat(update):
+    for key in _CHAT_CARRIERS:
+        payload = update.get(key)
+        if not payload:
+            continue
+        chat = payload.get("chat") or (payload.get("message") or {}).get("chat")
+        if chat:
+            return chat
+    return None
+
+
+def get_updates():
+    """Список последних чатов, где бот фигурировал (для определения chat_id).
+
+    Ловит и обычные сообщения, и событие добавления бота в группу (my_chat_member),
+    поэтому id группы можно получить, просто добавив бота (без текстового сообщения).
+    Возвращает {ok, chats:[{id,title,type}], error?}.
     """
     token = _token()
     if not token:
         return {"ok": False, "error": "no_token", "chats": []}
 
+    _delete_webhook_if_any(token)
+
     url = API_BASE.format(token=token, method="getUpdates")
     try:
-        resp = requests.get(url, params={"limit": 100}, timeout=TIMEOUT)
+        resp = requests.get(
+            url,
+            params={
+                "limit": 100,
+                "allowed_updates": '["message","edited_message","channel_post","my_chat_member","chat_member"]',
+            },
+            timeout=TIMEOUT,
+        )
         data = resp.json() if resp.content else {}
         if resp.status_code != 200 or not data.get("ok"):
             logger.error("Telegram getUpdates не удался: %s", data or resp.text)
@@ -85,21 +137,18 @@ def get_updates():
 
         seen = {}
         for upd in data.get("result", []):
-            msg = (
-                upd.get("message")
-                or upd.get("edited_message")
-                or upd.get("channel_post")
-                or {}
-            )
-            chat = msg.get("chat")
+            chat = _extract_chat(upd)
             if not chat:
                 continue
             cid = chat.get("id")
-            if cid in seen:
+            if cid is None or cid in seen:
                 continue
-            title = chat.get("title") or " ".join(
-                filter(None, [chat.get("first_name"), chat.get("last_name")])
-            ) or chat.get("username") or "—"
+            title = (
+                chat.get("title")
+                or " ".join(filter(None, [chat.get("first_name"), chat.get("last_name")]))
+                or chat.get("username")
+                or "—"
+            )
             seen[cid] = {"id": cid, "title": title, "type": chat.get("type")}
         return {"ok": True, "chats": list(seen.values())}
     except requests.RequestException as exc:
