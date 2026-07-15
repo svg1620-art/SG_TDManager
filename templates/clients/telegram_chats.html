@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Определить chat_id — SG · T&D manager{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs">
+    <a href="{{ url_for('clients.client_detail', client_id=org.id) }}">{{ org.name }}</a>
+    <span class="dim">/</span>
+    <span>Определить chat_id</span>
+  </div>
+
+  <h1 class="page-title">Определить chat_id</h1>
+  <p class="page-subtitle">Последние чаты, где бот получал сообщения</p>
+
+  {% if not result.ok %}
+  <div class="card">
+    {% if result.error == 'no_token' %}
+    <p class="empty-inline">Не задан <b>TELEGRAM_BOT_TOKEN</b>. Добавьте токен бота в переменные окружения.</p>
+    {% else %}
+    <p class="empty-inline">Не удалось получить обновления от Telegram. Попробуйте ещё раз чуть позже.</p>
+    {% endif %}
+  </div>
+  {% elif result.chats %}
+  <div class="card table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>Чат</th><th>Тип</th><th class="ta-right">chat_id</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for c in result.chats %}
+        <tr>
+          <td class="td-strong">{{ c.title }}</td>
+          <td class="dim">{{ c.type }}</td>
+          <td class="ta-right mono">{{ c.id }}</td>
+          <td class="ta-right">
+            <form method="post" action="{{ url_for('clients.telegram_set', client_id=org.id) }}" style="display:inline">
+              <input type="hidden" name="chat_id" value="{{ c.id }}">
+              <button type="submit" class="btn btn-primary btn-sm">Использовать</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card">
+    <p class="empty-inline">Чатов не найдено.</p>
+    <p class="hint dim">
+      Убедитесь, что бот добавлен в группу и там есть хотя бы одно свежее сообщение.
+      У бота в BotFather должен быть выключен privacy mode, либо напишите боту в группе напрямую
+      (упоминанием). Telegram отдаёт обновления недолго — напишите в группе и сразу обновите страницу.
+    </p>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:18px">
+    <a class="btn btn-ghost" href="{{ url_for('clients.telegram_chats', client_id=org.id) }}">Обновить</a>
+    <a class="btn btn-ghost" href="{{ url_for('clients.client_detail', client_id=org.id) }}">Назад к профилю</a>
+  </div>
+{% endblock %}

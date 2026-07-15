@@ -8,6 +8,10 @@
       <p class="page-subtitle">Все методологи и клиенты · <span class="mono">{{ '%02d'|format(month) }}.{{ year }}</span></p>
     </div>
     <div class="page-head-actions">
+      <form method="post" action="{{ url_for('admin.run_pulse_all') }}" style="display:inline"
+            onsubmit="return confirm('Отправить Telegram-пульс всем активным клиентам с chat_id?')">
+        <button type="submit" class="btn btn-ghost">Отправить пульс всем</button>
+      </form>
       <div class="month-nav">
         <a class="btn btn-ghost" href="{{ url_for('admin.dashboard', year=prev_month.year, month=prev_month.month) }}">←</a>
         <span class="month-label mono">{{ '%02d'|format(month) }}.{{ year }}</span>

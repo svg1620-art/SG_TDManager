@@ -170,6 +170,23 @@ def reset_password(user_id):
 
 
 # --------------------------------------------------------------------------- #
+# Ручной прогон Telegram-пульса по всем клиентам
+# --------------------------------------------------------------------------- #
+@admin_bp.route("/pulse/run", methods=["POST"])
+@role_required(ROLE_ADMIN)
+def run_pulse_all():
+    from services.pulse import run_pulse
+
+    stats = run_pulse()
+    flash(
+        f"Пульс: обработано {stats['processed']}, отправлено {stats['sent']}, "
+        f"пропущено {stats['skipped']}, ошибок {stats['errors']}.",
+        "info",
+    )
+    return redirect(url_for("admin.dashboard"))
+
+
+# --------------------------------------------------------------------------- #
 # Управление администраторами
 # --------------------------------------------------------------------------- #
 @admin_bp.route("/admins", methods=["GET", "POST"])

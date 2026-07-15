@@ -65,6 +65,46 @@
     {% endif %}
   </div>
 
+  <!-- Telegram-пульс -->
+  <div class="card">
+    <h2 class="card-title">Telegram-пульс</h2>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Текущий chat_id</div>
+        <div class="meta-value mono">{{ org.telegram_chat_id or '— не задан —' }}</div>
+      </div>
+    </div>
+
+    <div class="tg-actions">
+      <a class="btn btn-ghost" href="{{ url_for('clients.telegram_chats', client_id=org.id) }}">Определить chat_id</a>
+      <form method="post" action="{{ url_for('clients.telegram_test', client_id=org.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-ghost">Отправить тестовое сообщение</button>
+      </form>
+      <form method="post" action="{{ url_for('clients.telegram_pulse_now', client_id=org.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-primary">Отправить пульс сейчас</button>
+      </form>
+    </div>
+
+    <details class="inline-form">
+      <summary class="btn-link">Указать chat_id вручную</summary>
+      <form method="post" action="{{ url_for('clients.telegram_set', client_id=org.id) }}" class="mt-16">
+        <div class="field">
+          <label>telegram_chat_id</label>
+          <input type="text" name="chat_id" class="mono" value="{{ org.telegram_chat_id or '' }}" placeholder="напр. -1001234567890">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </details>
+
+    <p class="hint dim">
+      Как подключить: 1) добавьте бота в группу клиента; 2) напишите в группе любое сообщение;
+      3) нажмите «Определить chat_id» и выберите нужную группу. Затем «Отправить тестовое сообщение»
+      для проверки. Ежедневный пульс уходит автоматически вечером по МСК.
+    </p>
+  </div>
+
   <!-- Переназначение методолога (только админ) -->
   {% if current_user.is_admin %}
   <div class="card">

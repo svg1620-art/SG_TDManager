@@ -252,6 +252,71 @@ def _apply_client_form(org: ClientOrg, methodologists) -> ClientOrg:
     return org
 
 
+# --------------------------------------------------------------------------- #
+# Telegram-пульс: определение chat_id, тест, ручной прогон
+# --------------------------------------------------------------------------- #
+@clients_bp.route("/<int:client_id>/telegram/chats")
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def telegram_chats(client_id):
+    org = _load_client_or_403(client_id)
+    from services.telegram import get_updates
+
+    result = get_updates()
+    return render_template("clients/telegram_chats.html", org=org, result=result)
+
+
+@clients_bp.route("/<int:client_id>/telegram/set", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def telegram_set(client_id):
+    org = _load_client_or_403(client_id)
+    chat_id = (request.form.get("chat_id") or "").strip()
+    org.telegram_chat_id = chat_id or None
+    db.session.commit()
+    flash(
+        f"chat_id сохранён: {chat_id}" if chat_id else "chat_id очищен.",
+        "info",
+    )
+    return redirect(url_for("clients.client_detail", client_id=org.id))
+
+
+@clients_bp.route("/<int:client_id>/telegram/test", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def telegram_test(client_id):
+    org = _load_client_or_403(client_id)
+    if not org.telegram_chat_id:
+        flash("Сначала укажите telegram_chat_id.", "error")
+        return redirect(url_for("clients.client_detail", client_id=org.id))
+    from services.telegram import escape, send_message
+
+    ok = send_message(
+        org.telegram_chat_id,
+        f"Пульс подключён ✅\n<b>{escape(org.name)}</b>",
+    )
+    flash(
+        "Тестовое сообщение отправлено." if ok else "Не удалось отправить — проверьте токен и chat_id.",
+        "info" if ok else "error",
+    )
+    return redirect(url_for("clients.client_detail", client_id=org.id))
+
+
+@clients_bp.route("/<int:client_id>/telegram/pulse", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def telegram_pulse_now(client_id):
+    org = _load_client_or_403(client_id)
+    from services.pulse import run_pulse
+
+    stats = run_pulse(client_id=org.id)
+    if stats["sent"]:
+        flash("Пульс отправлен.", "info")
+    elif not org.telegram_chat_id:
+        flash("У клиента не задан telegram_chat_id.", "error")
+    elif stats["skipped"]:
+        flash("Пульс пропущен: за сегодня нет активности (пустой пульс не шлём).", "info")
+    else:
+        flash("Не удалось отправить пульс — проверьте токен и chat_id.", "error")
+    return redirect(url_for("clients.client_detail", client_id=org.id))
+
+
 @clients_bp.route("/<int:client_id>/delete", methods=["POST"])
 @role_required(ROLE_ADMIN)
 def delete_client_route(client_id):

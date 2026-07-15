@@ -1411,3 +1411,12 @@ a:hover {
 .danger-zone .card-title {
   color: #ff8496;
 }
+
+/* Telegram-действия в профиле клиента */
+.tg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+.tg-actions form { display: inline; }

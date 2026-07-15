@@ -37,6 +37,15 @@ def _monthly_budget_job(app) -> None:
         )
 
 
+def _pulse_job(app) -> None:
+    """Ежедневный Telegram-пульс активным клиентам с telegram_chat_id."""
+    with app.app_context():
+        from services.pulse import run_pulse
+
+        stats = run_pulse()
+        logger.info("Cron пульса: %s", stats)
+
+
 def _init_scheduler(app) -> None:
     """Инициализирует BackgroundScheduler и регистрирует cron-задачи.
 
@@ -57,8 +66,12 @@ def _init_scheduler(app) -> None:
     if app.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         return
 
+    from zoneinfo import ZoneInfo
+
     from apscheduler.schedulers.background import BackgroundScheduler
     from apscheduler.triggers.cron import CronTrigger
+
+    from services.pulse import PULSE_HOUR
 
     _scheduler = BackgroundScheduler(timezone="UTC")
     # 1-е число каждого месяца в 00:05 — автосоздание месячных бюджетов.
@@ -68,9 +81,16 @@ def _init_scheduler(app) -> None:
         id="monthly_budgets",
         replace_existing=True,
     )
-    # Задачи Telegram-пульса и AI-отчётов (Стадии 7/8) добавим позже.
+    # Ежедневный Telegram-пульс в PULSE_HOUR по московскому времени (день считаем по МСК).
+    _scheduler.add_job(
+        lambda: _pulse_job(app),
+        CronTrigger(hour=PULSE_HOUR, minute=0, timezone=ZoneInfo("Europe/Moscow")),
+        id="daily_pulse",
+        replace_existing=True,
+    )
+    # Задача AI-отчётов (Стадия 8) добавится позже.
     _scheduler.start()
-    logger.info("APScheduler запущен (задача monthly_budgets зарегистрирована).")
+    logger.info("APScheduler запущен (monthly_budgets, daily_pulse зарегистрированы).")
 
 
 def create_app(config_class=Config) -> Flask:
