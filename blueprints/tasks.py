@@ -37,6 +37,7 @@ from constants import (
 from extensions import db
 from models import ClientOrg, Comment, Task, TimeEntry, User
 from services.budgets import consumed_hours, effective_limit, remaining_hours
+from services.events import PUSH_COMMENTS, emit_task_event
 from services.notifications import notify
 from services.tasks import ACTIONS, TransitionError, apply_action, available_actions
 from services.time_entries import recalc_task_actual
@@ -340,6 +341,7 @@ def new_task():
                         f"Методолог создал задачу «{title}» для {org.name}.",
                         task.id,
                     )
+            emit_task_event(task, "new", current_user)
             flash("Задача создана.", "info")
             return redirect(url_for("tasks.task_detail", task_id=task.id))
 
@@ -464,6 +466,8 @@ def transition(task_id):
             notify_staff=_notify_staff,
         )
         db.session.commit()
+        # Instant-Telegram по новому статусу (bell уже сформирован в apply_action).
+        emit_task_event(task, task.status, current_user)
         flash(message, "info")
     except TransitionError as exc:
         db.session.rollback()
@@ -560,6 +564,9 @@ def add_comment(task_id):
                 f"Новый комментарий по задаче «{task.title}».",
                 task_id=task.id,
             )
+        # Instant-Telegram в группу клиента (комментарии клиента не дублируем).
+        if PUSH_COMMENTS:
+            emit_task_event(task, "comment", current_user)
 
     flash("Комментарий добавлен.", "info")
     return redirect(url_for("tasks.task_detail", task_id=task.id))

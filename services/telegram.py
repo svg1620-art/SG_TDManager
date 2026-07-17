@@ -5,6 +5,7 @@
 """
 import html
 import logging
+import threading
 
 import requests
 from flask import current_app
@@ -105,6 +106,44 @@ def _extract_chat(update):
         if chat:
             return chat
     return None
+
+
+def _safe_send(token, chat_id, text):
+    """Отправка из фонового потока: токен передан заранее (нет app-контекста в потоке)."""
+    if not token:
+        logger.warning("TELEGRAM_BOT_TOKEN не задан — instant-сообщение не отправлено.")
+        return
+    url = API_BASE.format(token=token, method="sendMessage")
+    try:
+        resp = requests.post(
+            url,
+            json={
+                "chat_id": str(chat_id),
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
+            timeout=TIMEOUT,
+        )
+        if resp.status_code != 200 or not (resp.json() if resp.content else {}).get("ok"):
+            logger.error("Instant Telegram не доставлен: %s", resp.text)
+    except Exception as exc:  # noqa: BLE001 — фон не должен ничего ронять
+        logger.error("Ошибка фоновой отправки в Telegram: %s", exc)
+
+
+def send_async(chat_id, text) -> None:
+    """Fire-and-forget отправка в отдельном daemon-потоке.
+
+    Токен читаем здесь (в контексте приложения/запроса) и передаём в поток, т.к.
+    внутри потока current_app недоступен. Провал доставки не влияет на вызвавший код.
+    """
+    if not chat_id:
+        return
+    token = _token()
+    thread = threading.Thread(
+        target=_safe_send, args=(token, chat_id, text), daemon=True
+    )
+    thread.start()
 
 
 def get_updates():

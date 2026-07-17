@@ -30,7 +30,7 @@
         {% endif %}
       {% endwith %}
 
-      <form method="post" action="{{ url_for('auth.login') }}">
+      <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
         <div class="field">
           <label for="login">Email</label>
           <input type="text" id="login" name="login" autocomplete="username" autofocus required>

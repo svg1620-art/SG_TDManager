@@ -91,6 +91,10 @@ class ClientOrg(db.Model):
     contract_end = db.Column(db.Date, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     notes = db.Column(db.Text, nullable=True)
+    # Мгновенные Telegram-оповещения по событиям задач (Стадия 7+). Пульс от этого не зависит.
+    instant_notifications_enabled = db.Column(
+        db.Boolean, default=True, nullable=False
+    )
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     methodologist = db.relationship(

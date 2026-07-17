@@ -36,6 +36,10 @@ class Config:
     # Telegram (стадия 7) — опционален на старте.
     TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
+    # Публичный адрес приложения для абсолютных ссылок в Telegram (без слэша на конце).
+    # Пусто → сообщения шлются без ссылки (логируется предупреждение), приложение не падает.
+    APP_BASE_URL = (os.environ.get("APP_BASE_URL", "") or "").rstrip("/")
+
     # Сид первого админа (стадия 1).
     ADMIN_LOGIN = os.environ.get("ADMIN_LOGIN", "")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")

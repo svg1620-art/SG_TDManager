@@ -279,6 +279,21 @@ def telegram_set(client_id):
     return redirect(url_for("clients.client_detail", client_id=org.id))
 
 
+@clients_bp.route("/<int:client_id>/telegram/instant-toggle", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
+def telegram_instant_toggle(client_id):
+    org = _load_client_or_403(client_id)
+    org.instant_notifications_enabled = not org.instant_notifications_enabled
+    db.session.commit()
+    flash(
+        "Мгновенные оповещения включены."
+        if org.instant_notifications_enabled
+        else "Мгновенные оповещения выключены (ежедневный пульс продолжит работать).",
+        "info",
+    )
+    return redirect(url_for("clients.client_detail", client_id=org.id))
+
+
 @clients_bp.route("/<int:client_id>/telegram/test", methods=["POST"])
 @role_required(ROLE_ADMIN, ROLE_METHODOLOGIST)
 def telegram_test(client_id):

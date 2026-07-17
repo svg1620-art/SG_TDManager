@@ -125,6 +125,32 @@ def _init_scheduler(app) -> None:
     )
 
 
+def _ensure_columns() -> None:
+    """Идемпотентно добавляет недостающие колонки в существующие таблицы.
+
+    Нужно потому, что db.create_all() создаёт только отсутствующие таблицы, но не
+    изменяет уже существующие (миграций в проекте нет). Диалект-независимо.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    try:
+        columns = {c["name"] for c in inspector.get_columns("client_orgs")}
+    except Exception:  # noqa: BLE001 — таблицы ещё нет (create_all её создаст сам)
+        return
+
+    if "instant_notifications_enabled" not in columns:
+        default = "true" if db.engine.dialect.name == "postgresql" else "1"
+        db.session.execute(
+            text(
+                "ALTER TABLE client_orgs ADD COLUMN instant_notifications_enabled "
+                f"BOOLEAN NOT NULL DEFAULT {default}"
+            )
+        )
+        db.session.commit()
+        logger.info("Добавлена колонка client_orgs.instant_notifications_enabled.")
+
+
 def create_app(config_class=Config) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -181,6 +207,7 @@ def create_app(config_class=Config) -> Flask:
         from seed import seed_admin
 
         db.create_all()
+        _ensure_columns()  # лёгкая «миграция» недостающих колонок (create_all не ALTER-ит)
         seed_admin(app)
 
     _init_scheduler(app)

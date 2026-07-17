@@ -73,7 +73,24 @@
         <div class="meta-label">Текущий chat_id</div>
         <div class="meta-value mono">{{ org.telegram_chat_id or '— не задан —' }}</div>
       </div>
+      <div class="meta-item">
+        <div class="meta-label">Мгновенные оповещения</div>
+        <div class="meta-value">
+          {% if org.instant_notifications_enabled %}
+          <span class="pill pill-ok">Включены</span>
+          {% else %}
+          <span class="pill pill-muted">Выключены</span>
+          {% endif %}
+          <form method="post" action="{{ url_for('clients.telegram_instant_toggle', client_id=org.id) }}" style="display:inline; margin-left:8px">
+            <button type="submit" class="btn-link">{{ 'выключить' if org.instant_notifications_enabled else 'включить' }}</button>
+          </form>
+        </div>
+      </div>
     </div>
+    <p class="hint dim" style="margin-top:8px">
+      Мгновенные оповещения шлют в группу сообщение на каждое событие по задаче (создание,
+      смена статуса, комментарий методолога) со ссылкой. Ежедневный пульс от этого тумблера не зависит.
+    </p>
 
     <div class="tg-actions">
       <a class="btn btn-ghost" href="{{ url_for('clients.telegram_chats', client_id=org.id) }}">Определить chat_id</a>
